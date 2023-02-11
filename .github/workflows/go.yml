@@ -7,7 +7,7 @@ on:
     paths:
       - cmd/**/*.go
       - internal/**/*.go
-      - test/**/*.go
+      - pkg/**/*.go
       - go.*
       - Makefile
       - .github/workflows/go.yml
