@@ -1,0 +1,67 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:base"
+  ],
+  "timezone": "Australia/Sydney",
+  "schedule": [
+    "before 9am on monday"
+  ],
+  "pip-compile": {
+    "fileMatch": ["(^|/)requirements\\.in$"]
+  },
+  "packageRules": [
+    {
+      "groupName": "AWS Go SDK",
+      "groupSlug": "aws-go",
+      "matchPackagePrefixes": ["github.com/aws/aws-sdk-go-v2"],
+      "matchUpdateTypes": ["patch", "pin", "digest"],
+      "automerge": true
+    },
+    {
+      "groupName": "AWS Python SDK",
+      "groupSlug": "aws-python",
+      "matchPackagePrefixes": ["boto"],
+      "matchUpdateTypes": ["patch", "pin", "digest"],
+      "automerge": true
+    }
+  ],
+  "regexManagers": [
+    {
+      "fileMatch": ["^Dockerfile$"],
+      "matchStrings": [
+        "https://github.com/(?<depName>.*?)/releases/download/(?<currentValue>.*)"
+      ],
+      "datasourceTemplate": "github-releases"
+    },
+    {
+      "fileMatch": ["^Dockerfile$"],
+      "matchStrings": [
+        "git clone -b (?<currentValue>.*) https://github.com/(?<depName>.*?).git"
+      ],
+      "datasourceTemplate": "github-releases"
+    },
+    {
+      "fileMatch": ["^Dockerfile$"],
+      "matchStrings": [
+        "pip3 install (?<depName>.*?)==(?<currentValue>.*)"
+      ],
+      "datasourceTemplate": "pypi"
+    },
+    {
+      "fileMatch": ["^Dockerfile$"],
+      "matchStrings": [
+        "go install (?<depName>.*?)@(?<currentValue>.*)"
+      ],
+      "datasourceTemplate": "go"
+    },
+    {
+      "fileMatch": ["^Dockerfile$"],
+      "matchStrings": [
+        "gem install (?<depName>.*?) -v (?<currentValue>.*)"
+      ],
+      "datasourceTemplate": "rubygems"
+    }
+  ],
+  "platformAutomerge": true
+}

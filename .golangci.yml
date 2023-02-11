@@ -1,0 +1,23 @@
+run:
+  timeout: 5m
+linters:
+  disable-all: true
+  enable:
+    # default
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - typecheck
+    - unused
+    # style
+    - gofmt
+    - stylecheck
+    - whitespace
+    # security
+    - gosec
+linters-settings:
+  gosec:
+    excludes:
+      - G107

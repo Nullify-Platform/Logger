@@ -1,0 +1,15 @@
+name: Integration Test
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+jobs:
+  integration-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Integration Tests
+        run: |
+          sh setup.sh
+          make ci-test
