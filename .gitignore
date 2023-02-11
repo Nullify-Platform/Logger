@@ -1,0 +1,7 @@
+pullrequest.zip
+push.zip
+bin
+data
+*.dtmp
+*.bkp
+coverage.*

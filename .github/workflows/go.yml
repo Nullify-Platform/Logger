@@ -1,0 +1,48 @@
+name: Golang CI
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    paths:
+      - cmd/**/*.go
+      - internal/**/*.go
+      - pkg/**/*.go
+      - go.*
+      - Makefile
+      - .github/workflows/go.yml
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: golang:1.20.0
+    steps:
+      - name: setup
+        run: |
+          git config --global --add safe.directory $(pwd)
+      - uses: actions/checkout@v3
+      - name: build
+        run: make build
+      - name: tidy
+        run: |
+          go mod tidy
+          git diff --exit-code
+  lint:
+    runs-on: ubuntu-latest
+    container: golangci/golangci-lint:v1.51.1
+    steps:
+      - uses: actions/checkout@v3
+      - name: Lint
+        run: golangci-lint run ./...
+  code-coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Unit Tests
+        env:
+          CODECOV_TOKEN: ${{secrets.CODECOV_TOKEN}}
+        run: |
+          go install github.com/boumenot/gocover-cobertura@latest
+          make cov
+          curl -Os https://uploader.codecov.io/latest/linux/codecov
+          chmod +x codecov
+          ./codecov -t ${CODECOV_TOKEN} 
