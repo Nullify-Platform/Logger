@@ -1,6 +1,6 @@
 package main
 
-import "logger/pkg/logger"
+import "github.com/Nullify-Platform/Logger/pkg/logger"
 
 func main() {
 	log, err := logger.ConfigureProductionLogger("info")

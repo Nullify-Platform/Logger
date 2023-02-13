@@ -1,4 +1,4 @@
-module logger
+module github.com/Nullify-Platform/Logger
 
 go 1.19
 
