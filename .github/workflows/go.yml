@@ -14,7 +14,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: golang:1.20.1
+    container: golang:1.20.2
     steps:
       - name: setup
         run: |
