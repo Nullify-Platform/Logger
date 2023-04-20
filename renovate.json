@@ -4,24 +4,19 @@
     "config:base"
   ],
   "timezone": "Australia/Sydney",
-  "schedule": [
-    "before 9am on monday"
-  ],
+  "schedule": ["before 9am on monday"],
+  "docker": {
+    "pinDigests": true
+  },
+  "labels": ["patch"],
+  "postUpdateOptions": ["gomodTidy", "gomodUpdateImportPaths"],
+  "separateMajorMinor": false,
   "packageRules": [
     {
-      "groupName": "AWS Go SDK",
-      "groupSlug": "aws-go",
-      "matchPackagePrefixes": ["github.com/aws/aws-sdk-go-v2"],
-      "matchUpdateTypes": ["patch", "pin", "digest"],
-      "automerge": true
-    },
-    {
-      "groupName": "AWS Python SDK",
-      "groupSlug": "aws-python",
-      "matchPackagePrefixes": ["boto"],
-      "matchUpdateTypes": ["patch", "pin", "digest"],
-      "automerge": true
+      "groupName": "Package Updates",
+      "groupSlug": "package-updates",
+      "matchUpdateTypes": ["major", "minor", "patch"],
+      "matchPackagePatterns": ["*"]
     }
-  ],
-  "platformAutomerge": true
+  ]
 }
