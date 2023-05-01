@@ -25,6 +25,10 @@ func String(key string, val string) zapcore.Field {
 	return zap.String(key, val)
 }
 
+func Bool(key string, val bool) zapcore.Field {
+	return zap.Bool(key, val)
+}
+
 func Int(key string, val int) zapcore.Field {
 	return zap.Int(key, val)
 }
