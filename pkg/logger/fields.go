@@ -40,3 +40,11 @@ func Int64(key string, val int64) zapcore.Field {
 func Duration(key string, val time.Duration) zapcore.Field {
 	return zap.Duration(key, val)
 }
+
+func Ints(key string, val []int) zapcore.Field {
+	return zap.Ints(key, val)
+}
+
+func Strings(key string, val []string) zapcore.Field {
+	return zap.Strings(key, val)
+}
