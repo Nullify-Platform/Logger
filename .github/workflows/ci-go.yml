@@ -13,7 +13,7 @@ run-name: CI Go ${{ github.sha }} by @${{ github.actor }}
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: golang:1.20.4
+    container: golang:1.20.5
     steps:
       - name: setup
         run: |
@@ -29,7 +29,7 @@ jobs:
         run: make unit
   lint:
     runs-on: ubuntu-latest
-    container: golangci/golangci-lint:v1.52.2
+    container: golangci/golangci-lint:v1.53.3
     steps:
       - uses: actions/checkout@v3
       - name: Lint
