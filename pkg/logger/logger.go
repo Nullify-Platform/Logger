@@ -7,7 +7,7 @@ import (
 type Logger interface {
 	NewChild(fields ...Field) Logger
 	AddField(fields ...Field)
-	Sync() error
+	Sync()
 
 	// levels
 	Debug(msg string, fields ...Field)
@@ -34,8 +34,8 @@ func (l *logger) AddFields(fields ...Field) {
 	l.underlyingLogger = l.underlyingLogger.With(fields...)
 }
 
-func (l *logger) Sync() error {
-	return l.underlyingLogger.Sync()
+func (l *logger) Sync() {
+	_ = l.underlyingLogger.Sync()
 }
 
 func (l *logger) Debug(msg string, fields ...Field) {
