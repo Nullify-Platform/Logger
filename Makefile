@@ -23,4 +23,5 @@ cov:
 	-go tool cover -func=coverage.txt
 
 lint:
-	docker run --rm -v $(shell pwd):/app -w /app golangci/golangci-lint:v1.44.2 golangci-lint run --enable gofmt,stylecheck,gosec ./...
+	docker build --quiet --target golangci-lint -t golangci-lint:latest .
+	docker run --rm -v $(shell pwd):/app -w /app golangci-lint golangci-lint run ./...

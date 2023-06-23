@@ -16,12 +16,12 @@ func TestAddField(t *testing.T) {
 	var output bytes.Buffer
 
 	// create new production logger
-	log, err := logger.ConfigureProductionLogger("info", &output)
+	myLogger, err := logger.ConfigureProductionLogger("info", &output)
 	require.Nil(t, err)
 
 	// log a line without the added field
 	logger.Info("test")
-	log.Sync()
+	myLogger.Sync()
 	fmt.Println("stdout: " + output.String())
 
 	// check that the output doesnt include the added field
@@ -35,7 +35,7 @@ func TestAddField(t *testing.T) {
 	output = bytes.Buffer{}
 	logger.AddField(logger.String("my", "field"))
 	logger.Info("test")
-	log.Sync()
+	myLogger.Sync()
 	fmt.Println("stdout: " + output.String())
 
 	// check that the output now has the added field
