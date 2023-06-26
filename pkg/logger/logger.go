@@ -6,6 +6,8 @@ import (
 
 type Logger interface {
 	NewChild(fields ...Field) Logger
+	WithOptions(opts ...Option) Logger
+
 	AddField(fields ...Field)
 	Sync()
 
@@ -26,6 +28,12 @@ type logger struct {
 // NewChild creates a new logger based on the default logger with the given default fields
 func (l *logger) NewChild(fields ...Field) Logger {
 	newLogger := l.underlyingLogger.With(fields...)
+	return &logger{underlyingLogger: newLogger}
+}
+
+// WithOptions adds a new field to the default logger
+func (l *logger) WithOptions(opts ...Option) Logger {
+	newLogger := l.underlyingLogger.WithOptions(opts...)
 	return &logger{underlyingLogger: newLogger}
 }
 
