@@ -2,6 +2,7 @@ package logger
 
 import (
 	"net/http"
+	"time"
 
 	"go.uber.org/zap"
 )
@@ -25,6 +26,8 @@ type LoggingTransport struct {
 }
 
 func (t *LoggingTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	start := time.Now()
+
 	res, err := t.baseTransport.RoundTrip(req)
 	if err != nil {
 		return res, err
@@ -44,47 +47,39 @@ func (t *LoggingTransport) RoundTrip(req *http.Request) (*http.Response, error) 
 		}
 	}
 
+	summary := Any("requestSummary", &HTTPRequestSummary{
+		Service:         "cognito",
+		Method:          req.Method,
+		URL:             req.URL.String(),
+		StatusCode:      res.StatusCode,
+		RequestHeaders:  reqHeaders,
+		ResponseHeaders: resHeaders,
+		Duration:        time.Since(start),
+	})
+
 	if t.logger == nil {
-		Info(
-			"request summary",
-			Any("requestSummary", &HTTPRequestMetadata{
-				Service:         "cognito",
-				Method:          req.Method,
-				URL:             req.URL.String(),
-				StatusCode:      res.StatusCode,
-				RequestHeaders:  reqHeaders,
-				ResponseHeaders: resHeaders,
-			}),
-		)
+		Info("request summary", summary)
 	} else {
-		t.logger.Info(
-			"request summary",
-			Any("requestSummary", &HTTPRequestMetadata{
-				Service:         "cognito",
-				Method:          req.Method,
-				URL:             req.URL.String(),
-				StatusCode:      res.StatusCode,
-				RequestHeaders:  reqHeaders,
-				ResponseHeaders: resHeaders,
-			}),
-		)
+		t.logger.Info("request summary", summary)
 	}
 
 	return res, err
 }
 
-type HTTPRequestMetadata struct {
-	Service         string   `json:"service"`
-	Method          string   `json:"method"`
-	URL             string   `json:"url"`
-	StatusCode      int      `json:"statusCode"`
-	RequestHeaders  []string `json:"requestHeaders"`
-	ResponseHeaders []string `json:"responseHeaders"`
+type HTTPRequestSummary struct {
+	Service         string        `json:"service"`
+	Host            string        `json:"host"`
+	Method          string        `json:"method"`
+	URL             string        `json:"url"`
+	StatusCode      int           `json:"statusCode"`
+	RequestHeaders  []string      `json:"requestHeaders"`
+	ResponseHeaders []string      `json:"responseHeaders"`
+	Duration        time.Duration `json:"duration"`
 }
 
 // HTTPRequest logs a summary of an HTTP request
 // service is the name of the service the request is being made to
-func (l *logger) HTTPRequest(service string, req *http.Request, res *http.Response) {
+func (l *logger) HTTPRequest(service string, duration time.Duration, req *http.Request, res *http.Response) {
 	reqHeaders := []string{}
 	for header, values := range req.Header {
 		for _, value := range values {
@@ -101,7 +96,7 @@ func (l *logger) HTTPRequest(service string, req *http.Request, res *http.Respon
 
 	l.Info(
 		"request summary",
-		Any("httpSummary", &HTTPRequestMetadata{
+		Any("httpSummary", &HTTPRequestSummary{
 			Service:         service,
 			Method:          req.Method,
 			URL:             req.URL.String(),
@@ -114,7 +109,7 @@ func (l *logger) HTTPRequest(service string, req *http.Request, res *http.Respon
 
 // HTTPRequest logs a summary of an HTTP request
 // service is the name of the service the request is being made to
-func HTTPRequest(service string, req *http.Request, res *http.Response) {
+func HTTPRequest(service string, duration time.Duration, req *http.Request, res *http.Response) {
 	reqHeaders := []string{}
 	for header, values := range req.Header {
 		for _, value := range values {
@@ -131,13 +126,15 @@ func HTTPRequest(service string, req *http.Request, res *http.Response) {
 
 	zap.L().Info(
 		"request summary",
-		Any("httpSummary", &HTTPRequestMetadata{
+		Any("httpSummary", &HTTPRequestSummary{
 			Service:         service,
+			Host:            req.Host,
 			Method:          req.Method,
 			URL:             req.URL.String(),
 			StatusCode:      res.StatusCode,
 			RequestHeaders:  reqHeaders,
 			ResponseHeaders: resHeaders,
+			Duration:        duration,
 		}),
 	)
 }
