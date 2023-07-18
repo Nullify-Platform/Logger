@@ -7,22 +7,25 @@ import (
 	"go.uber.org/zap"
 )
 
-func NewLoggingTransport(baseTransport http.RoundTripper) http.RoundTripper {
+func NewLoggingTransport(baseTransport http.RoundTripper, service string) http.RoundTripper {
 	return &LoggingTransport{
 		baseTransport: baseTransport,
+		service:       service,
 	}
 }
 
-func NewLoggingTransportWithLogger(baseTransport http.RoundTripper, logger Logger) http.RoundTripper {
+func NewLoggingTransportWithLogger(baseTransport http.RoundTripper, logger Logger, service string) http.RoundTripper {
 	return &LoggingTransport{
 		logger:        logger,
 		baseTransport: baseTransport,
+		service:       service,
 	}
 }
 
 type LoggingTransport struct {
-	logger        Logger
 	baseTransport http.RoundTripper
+	logger        Logger
+	service       string
 }
 
 func (t *LoggingTransport) RoundTrip(req *http.Request) (*http.Response, error) {
@@ -48,7 +51,7 @@ func (t *LoggingTransport) RoundTrip(req *http.Request) (*http.Response, error) 
 	}
 
 	summary := Any("requestSummary", &HTTPRequestSummary{
-		Service:         "cognito",
+		Service:         t.service,
 		Method:          req.Method,
 		URL:             req.URL.String(),
 		StatusCode:      res.StatusCode,
