@@ -13,7 +13,7 @@ run-name: CI Go ${{ github.sha }} by @${{ github.actor }}
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: golang:1.21.2
+    container: golang:1.21.3
     steps:
       - name: setup
         run: |
