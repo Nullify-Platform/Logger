@@ -1,9 +1,11 @@
 package logger
 
 import (
+	"errors"
 	"io"
 	"os"
 
+	"github.com/getsentry/sentry-go"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -40,6 +42,22 @@ func ConfigureDevelopmentLogger(level string, syncs ...io.Writer) (Logger, error
 	return &logger{underlyingLogger: zapLogger}, nil
 }
 
+func initialiseSentry() {
+	if os.Getenv("SENTRY_DSN") == "" {
+		zap.L().Fatal("Sentry DSN has not been configured; not capturing errors")
+		return
+	}
+
+	sentry.Init(sentry.ClientOptions{
+		Dsn:              os.Getenv("SENTRY_DSN"),
+		AttachStacktrace: true,
+		Release:          Version,
+		EnableTracing:    false,
+	})
+
+	sentry.CaptureException(errors.New("test sentry exception in dev stack"))
+}
+
 // ConfigureProductionLogger configures a JSON production logger
 func ConfigureProductionLogger(level string, syncs ...io.Writer) (Logger, error) {
 	zapLevel, err := zapcore.ParseLevel(level)
@@ -63,5 +81,8 @@ func ConfigureProductionLogger(level string, syncs ...io.Writer) (Logger, error)
 		zap.Fields(zap.String("version", Version)),
 	)
 	zap.ReplaceGlobals(zapLogger)
+
+	initialiseSentry()
+
 	return &logger{underlyingLogger: zapLogger}, nil
 }

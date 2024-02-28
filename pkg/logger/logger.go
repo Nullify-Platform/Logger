@@ -2,6 +2,9 @@
 package logger
 
 import (
+	"time"
+
+	"github.com/getsentry/sentry-go"
 	"go.uber.org/zap"
 )
 
@@ -48,6 +51,7 @@ func (l *logger) AddFields(fields ...Field) {
 // Sync flushes any buffered log entries
 func (l *logger) Sync() {
 	_ = l.underlyingLogger.Sync()
+	sentry.Flush(2 * time.Second)
 }
 
 // Debug logs a message with the debug level

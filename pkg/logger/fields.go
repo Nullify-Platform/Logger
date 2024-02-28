@@ -3,6 +3,7 @@ package logger
 import (
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -24,6 +25,7 @@ func Any(key string, val interface{}) Field {
 
 // Err adds an error field to the logger
 func Err(err error) Field {
+	sentry.CaptureException(err)
 	return zap.Error(err)
 }
 
