@@ -53,6 +53,8 @@ func (l *logger) Sync() {
 	success := sentry.Flush(100 * time.Millisecond)
 	if !success {
 		l.underlyingLogger.Error("sentry.Flush failed")
+	} else {
+		l.underlyingLogger.Debug("sentry.Flush success")
 	}
 	_ = l.underlyingLogger.Sync()
 }
