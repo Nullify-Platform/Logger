@@ -1,7 +1,6 @@
 package logger
 
 import (
-	"errors"
 	"io"
 	"os"
 
@@ -61,8 +60,6 @@ func initialiseSentry() {
 		zap.L().Fatal("failed to initialise sentry", zap.Error(err))
 		return
 	}
-
-	sentry.CaptureException(errors.New("test sentry exception in dev stack"))
 }
 
 // ConfigureProductionLogger configures a JSON production logger
