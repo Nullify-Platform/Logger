@@ -50,13 +50,9 @@ func (l *logger) AddFields(fields ...Field) {
 
 // Sync flushes any buffered log entries
 func (l *logger) Sync() {
-	l.Info("syncing logger")
-
-	success := sentry.Flush(100 * time.Millisecond)
+	success := sentry.Flush(200 * time.Millisecond)
 	if !success {
 		l.Error("sentry.Flush failed")
-	} else {
-		l.Info("sentry.Flush success")
 	}
 
 	_ = l.underlyingLogger.Sync()
