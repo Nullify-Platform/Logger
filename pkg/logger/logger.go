@@ -2,6 +2,7 @@
 package logger
 
 import (
+	"os"
 	"time"
 
 	"github.com/getsentry/sentry-go"
@@ -50,9 +51,12 @@ func (l *logger) AddFields(fields ...Field) {
 
 // Sync flushes any buffered log entries
 func (l *logger) Sync() {
-	success := sentry.Flush(200 * time.Millisecond)
-	if !success {
-		l.Error("sentry.Flush failed")
+	if os.Getenv("SENTRY_DSN") != "" {
+		success := sentry.Flush(200 * time.Millisecond)
+
+		if !success {
+			l.Error("sentry.Flush failed")
+		}
 	}
 
 	_ = l.underlyingLogger.Sync()
