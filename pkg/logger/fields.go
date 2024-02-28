@@ -31,6 +31,9 @@ func Err(err error) Field {
 
 // Errs adds a ;ist of errors field to the logger
 func Errs(msg string, errs []error) Field {
+	for _, err := range errs {
+		sentry.CaptureException(err)
+	}
 	return zap.Errors(msg, errs)
 }
 

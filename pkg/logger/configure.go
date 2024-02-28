@@ -46,14 +46,21 @@ func initialiseSentry() {
 	if os.Getenv("SENTRY_DSN") == "" {
 		zap.L().Fatal("Sentry DSN has not been configured; not capturing errors")
 		return
+	} else {
+		zap.L().Info("Sentry DSN has been configured; capturing errors")
 	}
 
-	sentry.Init(sentry.ClientOptions{
+	err := sentry.Init(sentry.ClientOptions{
 		Dsn:              os.Getenv("SENTRY_DSN"),
 		AttachStacktrace: true,
 		Release:          Version,
 		EnableTracing:    false,
+		Debug:            true,
 	})
+	if err != nil {
+		zap.L().Fatal("failed to initialise sentry", zap.Error(err))
+		return
+	}
 
 	sentry.CaptureException(errors.New("test sentry exception in dev stack"))
 }
