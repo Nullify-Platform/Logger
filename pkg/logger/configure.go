@@ -43,7 +43,7 @@ func ConfigureDevelopmentLogger(level string, syncs ...io.Writer) (Logger, error
 
 func initialiseSentry() {
 	if os.Getenv("SENTRY_DSN") == "" {
-		zap.L().Fatal("Sentry DSN has not been configured; not capturing errors")
+		zap.L().Error("Sentry DSN has not been configured; not capturing errors")
 		return
 	} else {
 		zap.L().Info("Sentry DSN has been configured; capturing errors")
@@ -57,7 +57,7 @@ func initialiseSentry() {
 		Debug:            true,
 	})
 	if err != nil {
-		zap.L().Fatal("failed to initialise sentry", zap.Error(err))
+		zap.L().Error("failed to initialise sentry", zap.Error(err))
 		return
 	}
 }
