@@ -7,6 +7,7 @@ import (
 
 	"github.com/getsentry/sentry-go"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 // Logger is the interface that for all the basic logging methods
@@ -74,15 +75,39 @@ func (l *logger) Info(msg string, fields ...Field) {
 
 // Warn logs a message with the warn level
 func (l *logger) Warn(msg string, fields ...Field) {
+	CaptureExceptions(fields)
 	l.underlyingLogger.Warn(msg, fields...)
 }
 
 // Error logs a message with the error level
 func (l *logger) Error(msg string, fields ...Field) {
+	CaptureExceptions(fields)
 	l.underlyingLogger.Error(msg, fields...)
 }
 
 // Fatal logs a message with the fatal level and then calls os.Exit(1)
 func (l *logger) Fatal(msg string, fields ...Field) {
+	CaptureExceptions(fields)
+	l.Sync()
+
 	l.underlyingLogger.Fatal(msg, fields...)
+}
+
+// Captures exceptions from fields and sends them to Sentry
+func CaptureExceptions(fields []Field) {
+	if os.Getenv("SENTRY_DSN") == "" {
+		return
+	}
+
+	for _, f := range fields {
+		if f.Type != zapcore.ErrorType {
+			continue
+		}
+
+		// Cast the interface to an error
+		err, ok := f.Interface.(error)
+		if ok {
+			sentry.CaptureException(err)
+		}
+	}
 }

@@ -1,10 +1,8 @@
 package logger
 
 import (
-	"os"
 	"time"
 
-	"github.com/getsentry/sentry-go"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -26,21 +24,11 @@ func Any(key string, val interface{}) Field {
 
 // Err adds an error field to the logger
 func Err(err error) Field {
-	if os.Getenv("SENTRY_DSN") != "" {
-		sentry.CaptureException(err)
-	}
-
 	return zap.Error(err)
 }
 
 // Errs adds a ;ist of errors field to the logger
 func Errs(msg string, errs []error) Field {
-	if os.Getenv("SENTRY_DSN") != "" {
-		for _, err := range errs {
-			sentry.CaptureException(err)
-		}
-	}
-
 	return zap.Errors(msg, errs)
 }
 
