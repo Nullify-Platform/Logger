@@ -18,5 +18,13 @@
       "matchUpdateTypes": ["major", "minor", "patch"],
       "matchPackagePatterns": ["*"]
     }
+  ],
+  "regexManagers": [
+    {
+      "fileMatch": ["^\\.github/workflows/ci-go\\.yml$"],
+      "matchStrings": ["version: (?<currentValue>.*?)"],
+      "depNameTemplate": "github.com/golangci/golangci-lint",
+      "datasourceTemplate": "go"
+    }
   ]
 }

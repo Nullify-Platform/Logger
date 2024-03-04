@@ -6,7 +6,6 @@ import (
 
 	"github.com/nullify-platform/logger/pkg/logger"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 )
 
 // TestAddField tests that the logger.AddField function adds a new
@@ -18,5 +17,5 @@ func TestWithOptions(t *testing.T) {
 	myLogger, err := logger.ConfigureProductionLogger("info", &output)
 	require.Nil(t, err)
 
-	myLogger.NewChild().WithOptions(zap.AddCallerSkip(5))
+	myLogger.NewChild().WithOptions(logger.AddCallerSkip(5))
 }
