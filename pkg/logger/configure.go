@@ -1,12 +1,20 @@
 package logger
 
 import (
+	"context"
 	"io"
 	"os"
 
 	"github.com/getsentry/sentry-go"
+	"github.com/nullify-platform/logger/pkg/logger/tracer"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
+	"go.opentelemetry.io/otel/sdk/resource"
+	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
 // Version is the current version of the application
@@ -59,8 +67,40 @@ func initialiseSentry() {
 	}
 }
 
+func newExporter(ctx context.Context) (sdktrace.SpanExporter, error) {
+	traceExporter, err := stdouttrace.New(
+		stdouttrace.WithPrettyPrint(), stdouttrace.WithWriter(os.Stdout))
+	if err != nil {
+		return nil, err
+	}
+
+	return traceExporter, nil
+}
+
+func newTraceProvider(exp sdktrace.SpanExporter) *sdktrace.TracerProvider {
+	// Ensure default SDK resources and the required service name are set.
+	r, err := resource.Merge(
+		resource.Default(),
+		resource.NewWithAttributes(
+			semconv.SchemaURL,
+			semconv.ServiceName("TODO_PLACEHOLDER_SERVICE_NAME"),
+			semconv.ServiceVersion(Version),
+		),
+	)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return sdktrace.NewTracerProvider(
+		sdktrace.WithBatcher(exp),
+		sdktrace.WithResource(r),
+		sdktrace.WithSampler(sdktrace.AlwaysSample()),
+	)
+}
+
 // ConfigureProductionLogger configures a JSON production logger
-func ConfigureProductionLogger(level string, syncs ...io.Writer) (Logger, error) {
+func ConfigureProductionLogger(ctx context.Context, level string, syncs ...io.Writer) (context.Context, error) {
 	zapLevel, err := zapcore.ParseLevel(level)
 	if err != nil {
 		zap.L().Fatal("failed to parse log level")
@@ -85,5 +125,17 @@ func ConfigureProductionLogger(level string, syncs ...io.Writer) (Logger, error)
 
 	initialiseSentry()
 
-	return &logger{underlyingLogger: zapLogger}, nil
+	traceExporter, err := newExporter(ctx)
+	if err != nil {
+		zap.L().Fatal("failed to create trace exporter", zap.Error(err))
+	}
+
+	tp := newTraceProvider(traceExporter)
+	otel.SetTracerProvider(tp)
+
+	l := &logger{underlyingLogger: zapLogger, tracer: tp.Tracer("logger-tracer")}
+	ctx = l.WithContext(ctx)
+	ctx = tracer.NewContext(ctx, tp.Tracer("logger-tracer"))
+
+	return ctx, nil
 }

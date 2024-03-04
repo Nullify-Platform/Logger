@@ -2,10 +2,12 @@
 package logger
 
 import (
+	"context"
 	"os"
 	"time"
 
 	"github.com/getsentry/sentry-go"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -25,24 +27,40 @@ type Logger interface {
 	Warn(msg string, fields ...Field)
 	Error(msg string, fields ...Field)
 	Fatal(msg string, fields ...Field)
+
+	// context
+	WithContext(ctx context.Context) context.Context
+	Tracer() trace.Tracer
 }
 
 type logger struct {
 	Logger
 
 	underlyingLogger *zap.Logger
+	tracer           trace.Tracer
+}
+
+type loggerCtxKey struct{}
+
+// NewContext returns a new context with the given logger
+func (l *logger) WithContext(ctx context.Context) context.Context {
+	return context.WithValue(ctx, loggerCtxKey{}, l.NewChild())
+}
+
+func (l *logger) Tracer() trace.Tracer {
+	return l.tracer
 }
 
 // NewChild creates a new logger based on the default logger with the given default fields
 func (l *logger) NewChild(fields ...Field) Logger {
 	newLogger := l.underlyingLogger.With(fields...)
-	return &logger{underlyingLogger: newLogger}
+	return &logger{underlyingLogger: newLogger, tracer: l.tracer}
 }
 
 // WithOptions adds a new field to the default logger
 func (l *logger) WithOptions(opts ...Option) Logger {
 	newLogger := l.underlyingLogger.WithOptions(opts...)
-	return &logger{underlyingLogger: newLogger}
+	return &logger{underlyingLogger: newLogger, tracer: l.tracer}
 }
 
 // AddField adds a new field to the default logger
@@ -75,26 +93,26 @@ func (l *logger) Info(msg string, fields ...Field) {
 
 // Warn logs a message with the warn level
 func (l *logger) Warn(msg string, fields ...Field) {
-	CaptureExceptions(fields)
+	captureExceptions(fields)
 	l.underlyingLogger.Warn(msg, fields...)
 }
 
 // Error logs a message with the error level
 func (l *logger) Error(msg string, fields ...Field) {
-	CaptureExceptions(fields)
+	captureExceptions(fields)
 	l.underlyingLogger.Error(msg, fields...)
 }
 
 // Fatal logs a message with the fatal level and then calls os.Exit(1)
 func (l *logger) Fatal(msg string, fields ...Field) {
-	CaptureExceptions(fields)
+	captureExceptions(fields)
 	l.Sync()
 
 	l.underlyingLogger.Fatal(msg, fields...)
 }
 
-// Captures exceptions from fields and sends them to Sentry
-func CaptureExceptions(fields []Field) {
+// captureExceptions captures exceptions from fields and sends them to sentry
+func captureExceptions(fields []Field) {
 	if os.Getenv("SENTRY_DSN") == "" {
 		return
 	}
@@ -104,7 +122,7 @@ func CaptureExceptions(fields []Field) {
 			continue
 		}
 
-		// Cast the interface to an error
+		// cast the interface to an error
 		err, ok := f.Interface.(error)
 		if ok {
 			sentry.CaptureException(err)
