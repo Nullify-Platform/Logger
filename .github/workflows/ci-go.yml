@@ -1,24 +1,19 @@
 name: CI Go
 on:
-  push:
-    branches:
-      - main
   pull_request:
-    paths:
-      - .github/workflows/go.yml
-      - '**.go'
-      - go.*
-      - Makefile
 run-name: CI Go ${{ github.sha }} by @${{ github.actor }}
 jobs:
-  build:
+  lint-build-tidy-test:
     runs-on: ubuntu-latest
-    container: golang:1.22.0
     steps:
-      - name: setup
-        run: |
-          git config --global --add safe.directory $(pwd)
       - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: lint
+        uses: golangci/golangci-lint-action@v4
+        with:
+          version: v1.56.2
       - name: build
         run: make build
       - name: tidy
@@ -27,10 +22,3 @@ jobs:
           git diff --exit-code
       - name: test
         run: make unit
-  lint:
-    runs-on: ubuntu-latest
-    container: golangci/golangci-lint:v1.56.2
-    steps:
-      - uses: actions/checkout@v4
-      - name: Lint
-        run: golangci-lint run ./...

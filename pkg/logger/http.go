@@ -7,6 +7,8 @@ import (
 	"go.uber.org/zap"
 )
 
+// NewLoggingTransport creates a new http.RoundTripper that logs requests and responses
+// with the global logge
 func NewLoggingTransport(baseTransport http.RoundTripper, service string) http.RoundTripper {
 	return &LoggingTransport{
 		baseTransport: baseTransport,
@@ -14,6 +16,8 @@ func NewLoggingTransport(baseTransport http.RoundTripper, service string) http.R
 	}
 }
 
+// NewLoggingTransportWithLogger creates a new http.RoundTripper that logs requests and responses
+// with a custom logger
 func NewLoggingTransportWithLogger(baseTransport http.RoundTripper, logger Logger, service string) http.RoundTripper {
 	return &LoggingTransport{
 		logger:        logger,
@@ -22,12 +26,14 @@ func NewLoggingTransportWithLogger(baseTransport http.RoundTripper, logger Logge
 	}
 }
 
+// LoggingTransport is an http.RoundTripper that logs HTTP requests and responses
 type LoggingTransport struct {
 	baseTransport http.RoundTripper
 	logger        Logger
 	service       string
 }
 
+// RoundTrip executes the HTTP request and logs the request and response summary
 func (t *LoggingTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	start := time.Now()
 
@@ -69,6 +75,7 @@ func (t *LoggingTransport) RoundTrip(req *http.Request) (*http.Response, error) 
 	return res, err
 }
 
+// HTTPRequestSummary is a JSON struct definition for the summary of an HTTP request
 type HTTPRequestSummary struct {
 	Service         string        `json:"service"`
 	Host            string        `json:"host"`
@@ -106,6 +113,7 @@ func (l *logger) HTTPRequest(service string, duration time.Duration, req *http.R
 			StatusCode:      res.StatusCode,
 			RequestHeaders:  reqHeaders,
 			ResponseHeaders: resHeaders,
+			Duration:        duration,
 		}),
 	)
 }

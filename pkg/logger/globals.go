@@ -16,22 +16,27 @@ func AddField(fields ...Field) {
 
 // levels
 
+// Debug logs a message with the debug level
 func Debug(msg string, fields ...Field) {
 	zap.L().Debug(msg, fields...)
 }
 
+// Info logs a message with the info level
 func Info(msg string, fields ...Field) {
 	zap.L().Info(msg, fields...)
 }
 
+// Warn logs a message with the warn level
 func Warn(msg string, fields ...Field) {
 	zap.L().Warn(msg, fields...)
 }
 
+// Error logs a message with the error level
 func Error(msg string, fields ...Field) {
 	zap.L().Error(msg, fields...)
 }
 
+// Fatal logs a message with the fatal level and then calls os.Exit(1)
 func Fatal(msg string, fields ...Field) {
 	zap.L().Fatal(msg, fields...)
 }

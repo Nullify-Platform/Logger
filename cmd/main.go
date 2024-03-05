@@ -1,3 +1,4 @@
+// Package main is an example application that uses the logger package
 package main
 
 import "github.com/nullify-platform/logger/pkg/logger"
