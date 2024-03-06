@@ -2,6 +2,7 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"runtime/debug"
@@ -46,7 +47,7 @@ type httpRequestMetadata struct {
 // LoggingMiddleware logs the incoming request and the outgoing response and adds relevant tracing information
 func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx, span := tracer.FromContext(r.Context()).Start(r.Context(), r.URL.EscapedPath())
+		ctx, span := tracer.FromContext(r.Context()).Start(r.Context(), fmt.Sprint("http call", r.URL.EscapedPath()))
 		defer logger.FromContext(ctx).Sync()
 		defer span.End()
 
