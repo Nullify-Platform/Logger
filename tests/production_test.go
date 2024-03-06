@@ -31,6 +31,6 @@ func TestProductionLogger(t *testing.T) {
 
 	assert.Equal(t, "info", jsonOutput["level"], "stdout didn't include INFO")
 	assert.Equal(t, "test", jsonOutput["msg"], "stdout didn't include the 'test' log message")
-	assert.Equal(t, "tests/production_test.go:20", jsonOutput["caller"], "stdout didn't include the file path and line number")
+	assert.Equal(t, "tests/production_test.go:23", jsonOutput["caller"], "stdout didn't include the file path and line number")
 	assert.Equal(t, "0.0.0", jsonOutput["version"], "stdout didn't include version")
 }
