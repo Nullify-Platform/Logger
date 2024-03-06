@@ -13,14 +13,19 @@ func FromContext(ctx context.Context) Logger {
 		return nil
 	}
 
+	var fields []zap.Field
+
 	if l, ok := ctx.Value(loggerCtxKey{}).(Logger); ok {
 		if traceID := trace.SpanFromContext(ctx).SpanContext().TraceID(); traceID.IsValid() {
-			l = l.NewChild(zap.String("trace-id", traceID.String()))
+			fields = append(fields, zap.String("trace-id", traceID.String()))
 		}
 
 		if spanID := trace.SpanFromContext(ctx).SpanContext().SpanID(); spanID.IsValid() {
-			l = l.NewChild(zap.String("span-id", spanID.String()))
+			fields = append(fields, zap.String("span-id", spanID.String()))
 		}
+
+		l := l.NewChild(fields...)
+		l.PassContext(ctx)
 
 		return l
 	}
@@ -52,18 +57,15 @@ func Info(msg string, fields ...Field) {
 
 // Warn logs a message with the warn level
 func Warn(msg string, fields ...Field) {
-	captureExceptions(fields)
 	zap.L().Warn(msg, fields...)
 }
 
 // Error logs a message with the error level
 func Error(msg string, fields ...Field) {
-	captureExceptions(fields)
 	zap.L().Error(msg, fields...)
 }
 
 // Fatal logs a message with the fatal level and then calls os.Exit(1)
 func Fatal(msg string, fields ...Field) {
-	captureExceptions(fields)
 	zap.L().Fatal(msg, fields...)
 }

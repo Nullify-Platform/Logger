@@ -8,6 +8,7 @@ import (
 	"github.com/getsentry/sentry-go"
 	"github.com/nullify-platform/logger/pkg/logger/tracer"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
@@ -55,9 +56,9 @@ func ConfigureDevelopmentLogger(ctx context.Context, level string, syncs ...io.W
 	tp := newTraceProvider(traceExporter)
 	otel.SetTracerProvider(tp)
 
-	l := &logger{underlyingLogger: zapLogger, tracer: tp.Tracer("dev-logger-tracer")}
-	ctx = l.WithContext(ctx)
-	ctx = tracer.NewContext(ctx, tp.Tracer("dev-logger-tracer"))
+	l := &logger{underlyingLogger: zapLogger}
+	ctx = l.InjectIntoContext(ctx)
+	ctx = tracer.NewContext(ctx, tp, "dev-logger-tracer")
 
 	return ctx, nil
 }
@@ -81,6 +82,15 @@ func initialiseSentry() {
 }
 
 func newExporter(ctx context.Context) (sdktrace.SpanExporter, error) {
+	if os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") != "" {
+		traceExporter, err := otlptracehttp.New(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		return traceExporter, nil
+	}
+
 	traceExporter, err := stdouttrace.New(
 		stdouttrace.WithPrettyPrint(), stdouttrace.WithWriter(os.Stdout))
 	if err != nil {
@@ -96,7 +106,6 @@ func newTraceProvider(exp sdktrace.SpanExporter) *sdktrace.TracerProvider {
 		resource.Default(),
 		resource.NewWithAttributes(
 			semconv.SchemaURL,
-			semconv.ServiceName("TODO_PLACEHOLDER_SERVICE_NAME"),
 			semconv.ServiceVersion(Version),
 		),
 	)
@@ -146,9 +155,9 @@ func ConfigureProductionLogger(ctx context.Context, level string, syncs ...io.Wr
 	tp := newTraceProvider(traceExporter)
 	otel.SetTracerProvider(tp)
 
-	l := &logger{underlyingLogger: zapLogger, tracer: tp.Tracer("logger-tracer")}
-	ctx = l.WithContext(ctx)
-	ctx = tracer.NewContext(ctx, tp.Tracer("logger-tracer"))
+	l := &logger{underlyingLogger: zapLogger}
+	ctx = l.InjectIntoContext(ctx)
+	ctx = tracer.NewContext(ctx, tp, "prod-logger-tracer")
 
 	return ctx, nil
 }

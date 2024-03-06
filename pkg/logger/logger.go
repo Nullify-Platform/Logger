@@ -3,11 +3,13 @@ package logger
 
 import (
 	"context"
+	"github.com/nullify-platform/logger/pkg/logger/tracer"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 	"os"
 	"time"
 
 	"github.com/getsentry/sentry-go"
-	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -29,49 +31,55 @@ type Logger interface {
 	Fatal(msg string, fields ...Field)
 
 	// context
-	WithContext(ctx context.Context) context.Context
-	Tracer() trace.Tracer
+	InjectIntoContext(ctx context.Context) context.Context
+	PassContext(ctx context.Context)
 }
 
 type logger struct {
 	Logger
 
 	underlyingLogger *zap.Logger
-	tracer           trace.Tracer
+	attachedContext  context.Context
 }
 
 type loggerCtxKey struct{}
 
-// NewContext returns a new context with the given logger
-func (l *logger) WithContext(ctx context.Context) context.Context {
+// InjectIntoContext injects the logger into the context
+func (l *logger) InjectIntoContext(ctx context.Context) context.Context {
 	return context.WithValue(ctx, loggerCtxKey{}, l.NewChild())
 }
 
-func (l *logger) Tracer() trace.Tracer {
-	return l.tracer
+// PassContext passes the context to the logger
+func (l *logger) PassContext(ctx context.Context) {
+	l.attachedContext = ctx
 }
 
 // NewChild creates a new logger based on the default logger with the given default fields
 func (l *logger) NewChild(fields ...Field) Logger {
 	newLogger := l.underlyingLogger.With(fields...)
-	return &logger{underlyingLogger: newLogger, tracer: l.tracer}
+	return &logger{underlyingLogger: newLogger}
 }
 
 // WithOptions adds a new field to the default logger
 func (l *logger) WithOptions(opts ...Option) Logger {
 	newLogger := l.underlyingLogger.WithOptions(opts...)
-	return &logger{underlyingLogger: newLogger, tracer: l.tracer}
+	return &logger{underlyingLogger: newLogger}
 }
 
-// AddField adds a new field to the default logger
+// AddFields adds new fields to the default logger
 func (l *logger) AddFields(fields ...Field) {
 	l.underlyingLogger = l.underlyingLogger.With(fields...)
 }
 
 // Sync flushes any buffered log entries
 func (l *logger) Sync() {
+	err := tracer.ForceFlush(l.attachedContext)
+	if err != nil {
+		l.Error("tracer.ForceFlush failed", Err(err))
+	}
+
 	if os.Getenv("SENTRY_DSN") != "" {
-		success := sentry.Flush(200 * time.Millisecond)
+		success := sentry.Flush(1000 * time.Millisecond)
 
 		if !success {
 			l.Error("sentry.Flush failed")
@@ -93,26 +101,27 @@ func (l *logger) Info(msg string, fields ...Field) {
 
 // Warn logs a message with the warn level
 func (l *logger) Warn(msg string, fields ...Field) {
-	captureExceptions(fields)
+	l.captureExceptions(fields)
 	l.underlyingLogger.Warn(msg, fields...)
 }
 
 // Error logs a message with the error level
 func (l *logger) Error(msg string, fields ...Field) {
-	captureExceptions(fields)
+	trace.SpanFromContext(l.attachedContext).SetStatus(codes.Error, msg)
+	l.captureExceptions(fields)
 	l.underlyingLogger.Error(msg, fields...)
 }
 
 // Fatal logs a message with the fatal level and then calls os.Exit(1)
 func (l *logger) Fatal(msg string, fields ...Field) {
-	captureExceptions(fields)
-	l.Sync()
+	trace.SpanFromContext(l.attachedContext).SetStatus(codes.Error, msg)
+	l.captureExceptions(fields)
 
 	l.underlyingLogger.Fatal(msg, fields...)
 }
 
 // captureExceptions captures exceptions from fields and sends them to sentry
-func captureExceptions(fields []Field) {
+func (l *logger) captureExceptions(fields []Field) {
 	if os.Getenv("SENTRY_DSN") == "" {
 		return
 	}
@@ -124,8 +133,21 @@ func captureExceptions(fields []Field) {
 
 		// cast the interface to an error
 		err, ok := f.Interface.(error)
-		if ok {
-			sentry.CaptureException(err)
+		if !ok {
+			continue
 		}
+
+		span := trace.SpanFromContext(l.attachedContext)
+
+		// Provide trace context to sentry
+		sentry.WithScope(func(scope *sentry.Scope) {
+			scope.SetContext("trace", map[string]interface{}{
+				"traceID": span.SpanContext().TraceID().String(),
+				"spanID":  span.SpanContext().SpanID().String(),
+			})
+
+			sentry.CaptureException(err)
+		})
+
 	}
 }
