@@ -3,13 +3,13 @@ package logger
 
 import (
 	"context"
-	"github.com/nullify-platform/logger/pkg/logger/tracer"
-	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/trace"
 	"os"
 	"time"
 
 	"github.com/getsentry/sentry-go"
+	"github.com/nullify-platform/logger/pkg/logger/tracer"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -148,6 +148,5 @@ func (l *logger) captureExceptions(fields []Field) {
 
 			sentry.CaptureException(err)
 		})
-
 	}
 }

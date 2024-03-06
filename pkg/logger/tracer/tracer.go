@@ -1,10 +1,11 @@
+// Package tracer provides a way to get the tracer from the context and to create a new context with a tracer. It also provides a way to force the trace provider to flush all the traces to the exporter.
 package tracer
 
 import (
 	"context"
-	"go.opentelemetry.io/otel/trace"
 
 	otelsdk "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type tracerCtxKey struct{}

@@ -4,6 +4,7 @@ package main
 import (
 	"context"
 	"errors"
+
 	"github.com/nullify-platform/logger/pkg/logger"
 	"github.com/nullify-platform/logger/pkg/logger/tracer"
 )
