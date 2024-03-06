@@ -2,6 +2,7 @@ package tests
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"testing"
@@ -13,18 +14,20 @@ import (
 // TestAddField tests that the logger.AddField function adds a new
 // field to the default logger
 func TestAddField(t *testing.T) {
+	ctx := context.Background()
 	var output bytes.Buffer
 
 	// create new production logger
-	myLogger, err := logger.ConfigureProductionLogger("info", &output)
+	ctx, err := logger.ConfigureProductionLogger(ctx, "info", &output)
 	require.Nil(t, err)
+	myLogger := logger.FromContext(ctx)
 
 	// log a line without the added field
-	logger.Info("test")
+	myLogger.Info("test")
 	myLogger.Sync()
 	fmt.Println("stdout: " + output.String())
 
-	// check that the output doesnt include the added field
+	// check that the output doesn't include the added field
 	var jsonOutput map[string]interface{}
 	err = json.Unmarshal(output.Bytes(), &jsonOutput)
 	require.Nil(t, err)
@@ -33,8 +36,8 @@ func TestAddField(t *testing.T) {
 
 	// reset output and log again with the new default field
 	output = bytes.Buffer{}
-	logger.AddField(logger.String("my", "field"))
-	logger.Info("test")
+	myLogger.AddFields(logger.String("my", "field"))
+	myLogger.Info("test")
 	myLogger.Sync()
 	fmt.Println("stdout: " + output.String())
 

@@ -2,6 +2,7 @@ package tests
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"strings"
 	"testing"
@@ -12,12 +13,14 @@ import (
 )
 
 func TestDevelopmentLogger(t *testing.T) {
+	ctx := context.Background()
 	var output bytes.Buffer
 
-	log, err := logger.ConfigureDevelopmentLogger("info", &output)
+	ctx, err := logger.ConfigureDevelopmentLogger(ctx, "info", &output)
 	require.Nil(t, err)
+	log := logger.FromContext(ctx)
 
-	logger.Info("test")
+	log.Info("test")
 	log.Sync()
 
 	fmt.Println("stdout: " + output.String())

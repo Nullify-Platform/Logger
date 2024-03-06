@@ -2,6 +2,7 @@ package tests
 
 import (
 	"bytes"
+	"context"
 	"testing"
 
 	"github.com/nullify-platform/logger/pkg/logger"
@@ -11,11 +12,13 @@ import (
 // TestAddField tests that the logger.AddField function adds a new
 // field to the default logger
 func TestWithOptions(t *testing.T) {
+	ctx := context.Background()
 	var output bytes.Buffer
 
 	// create new production logger
-	myLogger, err := logger.ConfigureProductionLogger("info", &output)
+	ctx, err := logger.ConfigureProductionLogger(ctx, "info", &output)
 	require.Nil(t, err)
+	myLogger := logger.FromContext(ctx)
 
 	myLogger.NewChild().WithOptions(logger.AddCallerSkip(5))
 }

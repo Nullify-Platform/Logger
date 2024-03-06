@@ -20,7 +20,7 @@ type Logger interface {
 	NewChild(fields ...Field) Logger
 	WithOptions(opts ...Option) Logger
 
-	AddField(fields ...Field)
+	AddFields(fields ...Field)
 	Sync()
 
 	// levels
