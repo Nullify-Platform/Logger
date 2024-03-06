@@ -9,7 +9,6 @@ import (
 
 	"github.com/getsentry/sentry-go"
 	"github.com/nullify-platform/logger/pkg/logger"
-	"go.uber.org/zap"
 )
 
 type ResponseWriter struct {
@@ -56,9 +55,6 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 					logger.Trace(debug.Stack()),
 				)
 			}
-
-			sentry.Flush(200 * time.Millisecond)
-			zap.L().Sync()
 		}()
 
 		reqHeaders := []string{}
