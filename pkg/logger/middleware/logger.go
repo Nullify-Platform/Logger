@@ -43,6 +43,7 @@ type httpRequestMetadata struct {
 	Duration        time.Duration `json:"duration"`
 }
 
+// LoggingMiddleware logs the incoming request and the outgoing response and adds relevant tracing information
 func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx, span := tracer.FromContext(r.Context()).Start(r.Context(), r.URL.EscapedPath())
