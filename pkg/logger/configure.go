@@ -23,7 +23,7 @@ import (
 var Version = "0.0.0"
 
 // ConfigureDevelopmentLogger configures a development logger which is more human readable instead of JSON
-func ConfigureDevelopmentLogger(level string, syncs ...io.Writer) (Logger, error) {
+func ConfigureDevelopmentLogger(ctx context.Context, level string, syncs ...io.Writer) (context.Context, error) {
 	// configure level
 	zapLevel, err := zapcore.ParseLevel(level)
 	if err != nil {
@@ -46,7 +46,20 @@ func ConfigureDevelopmentLogger(level string, syncs ...io.Writer) (Logger, error
 		zap.Fields(zap.String("version", Version)),
 	)
 	zap.ReplaceGlobals(zapLogger)
-	return &logger{underlyingLogger: zapLogger}, nil
+
+	traceExporter, err := newExporter(ctx)
+	if err != nil {
+		zap.L().Fatal("failed to create trace exporter", zap.Error(err))
+	}
+
+	tp := newTraceProvider(traceExporter)
+	otel.SetTracerProvider(tp)
+
+	l := &logger{underlyingLogger: zapLogger, tracer: tp.Tracer("dev-logger-tracer")}
+	ctx = l.WithContext(ctx)
+	ctx = tracer.NewContext(ctx, tp.Tracer("dev-logger-tracer"))
+
+	return ctx, nil
 }
 
 func initialiseSentry() {
