@@ -13,6 +13,7 @@ import (
 	"github.com/nullify-platform/logger/pkg/logger"
 	"github.com/nullify-platform/logger/pkg/logger/tracer"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type responseWriter struct {
@@ -48,7 +49,12 @@ type httpRequestMetadata struct {
 func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx, span := tracer.FromContext(r.Context()).Start(r.Context(), fmt.Sprint("http call", r.URL.EscapedPath()))
-		defer logger.FromContext(ctx).Sync()
+		defer func() {
+			// Check if there is a parent span
+			if parentSpan := trace.SpanFromContext(ctx); !parentSpan.SpanContext().IsValid() {
+				logger.FromContext(ctx).Sync()
+			}
+		}()
 		defer span.End()
 
 		defer func() {
