@@ -1,3 +1,4 @@
+// Package middleware provides a middleware for logging http requests and injecting tracing
 package middleware
 
 import (
@@ -9,27 +10,29 @@ import (
 
 	"github.com/getsentry/sentry-go"
 	"github.com/nullify-platform/logger/pkg/logger"
+	"github.com/nullify-platform/logger/pkg/logger/tracer"
+	"go.opentelemetry.io/otel/attribute"
 )
 
-type ResponseWriter struct {
+type responseWriter struct {
 	http.ResponseWriter
 	StatusCode int
 }
 
-func (rw *ResponseWriter) Header() http.Header {
+func (rw *responseWriter) Header() http.Header {
 	return rw.ResponseWriter.Header()
 }
 
-func (rw *ResponseWriter) Write(data []byte) (int, error) {
+func (rw *responseWriter) Write(data []byte) (int, error) {
 	return rw.ResponseWriter.Write(data)
 }
 
-func (rw *ResponseWriter) WriteHeader(statusCode int) {
+func (rw *responseWriter) WriteHeader(statusCode int) {
 	rw.StatusCode = statusCode
 	rw.ResponseWriter.WriteHeader(statusCode)
 }
 
-type HTTPRequestMetadata struct {
+type httpRequestMetadata struct {
 	Host            string        `json:"host"`
 	Method          string        `json:"method"`
 	Path            string        `json:"path"`
@@ -42,6 +45,10 @@ type HTTPRequestMetadata struct {
 
 func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx, span := tracer.FromContext(r.Context()).Start(r.Context(), r.URL.EscapedPath())
+		defer logger.FromContext(ctx).Sync()
+		defer span.End()
+
 		defer func() {
 			if err := recover(); err != nil {
 				if e, ok := err.(error); ok {
@@ -49,7 +56,7 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 				}
 
 				w.WriteHeader(http.StatusInternalServerError)
-				logger.Error(
+				logger.FromContext(ctx).Error(
 					"endpoint handler panicked",
 					logger.Any("err", err),
 					logger.Trace(debug.Stack()),
@@ -69,7 +76,7 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 			}
 		}
 
-		metadata := HTTPRequestMetadata{
+		metadata := httpRequestMetadata{
 			Host:           r.Host,
 			Method:         r.Method,
 			Path:           r.URL.EscapedPath(),
@@ -77,16 +84,26 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 			RequestHeaders: reqHeaders,
 		}
 
+		span.SetAttributes(
+			attribute.String("http.method", r.Method),
+			attribute.String("http.host", r.Host),
+			attribute.String("http.Path", r.URL.EscapedPath()),
+			attribute.String("http.Query", r.URL.Query().Encode()),
+			attribute.StringSlice("http.RequestHeaders", reqHeaders),
+		)
+
 		if r.URL.EscapedPath() != "/healthcheck" {
-			logger.Info(
+			logger.FromContext(ctx).Info(
 				"new request",
 				logger.Any("requestSummary", metadata),
 			)
 		}
 
+		span.AddEvent("delegating request")
 		start := time.Now()
-		rw := &ResponseWriter{ResponseWriter: w}
+		rw := &responseWriter{ResponseWriter: w}
 		next.ServeHTTP(rw, r)
+		span.AddEvent("request completed")
 
 		resHeaders := []string{}
 		for header, values := range rw.Header() {
@@ -98,9 +115,10 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 		metadata.StatusCode = rw.StatusCode
 		metadata.ResponseHeaders = resHeaders
 		metadata.Duration = time.Since(start)
+		span.AddEvent("response parsing complete")
 
 		if r.URL.EscapedPath() != "/healthcheck" {
-			logger.Info(
+			logger.FromContext(ctx).Info(
 				"request summary",
 				logger.Any("requestSummary", metadata),
 			)
