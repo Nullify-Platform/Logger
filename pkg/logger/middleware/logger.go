@@ -103,7 +103,7 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 		span.AddEvent("delegating request")
 		start := time.Now()
 		rw := &responseWriter{ResponseWriter: w}
-		next.ServeHTTP(rw, r)
+		next.ServeHTTP(rw, r.WithContext(ctx))
 		span.AddEvent("request completed")
 
 		resHeaders := []string{}
