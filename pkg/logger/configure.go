@@ -91,13 +91,16 @@ func newExporter(ctx context.Context) (sdktrace.SpanExporter, error) {
 		return traceExporter, nil
 	}
 
-	traceExporter, err := stdouttrace.New(
-		stdouttrace.WithPrettyPrint(), stdouttrace.WithWriter(os.Stdout))
-	if err != nil {
-		return nil, err
+	if os.Getenv("TRACE_OUTPUT_DEBUG") != "" {
+		traceExporter, err := stdouttrace.New(
+			stdouttrace.WithPrettyPrint(), stdouttrace.WithWriter(os.Stdout))
+		if err != nil {
+			return nil, err
+		}
+		return traceExporter, nil
 	}
 
-	return traceExporter, nil
+	return nil, nil
 }
 
 func newTraceProvider(exp sdktrace.SpanExporter) *sdktrace.TracerProvider {
