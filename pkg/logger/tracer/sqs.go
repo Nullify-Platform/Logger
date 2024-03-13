@@ -5,6 +5,7 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	sqsTypes "github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
@@ -43,7 +44,7 @@ func newSQSMessageCarrier(attributes *map[string]sqsTypes.MessageAttributeValue)
 }
 
 // InjectTracingIntoSQSMessage inserts tracing from context into the SQS message attributes.
-func InjectTracingIntoSQSMessage(ctx context.Context, sqsMessage *sqsTypes.Message) {
+func InjectTracingIntoSQSMessage(ctx context.Context, sqsMessage *sqs.SendMessageInput) {
 	if sqsMessage.MessageAttributes == nil {
 		sqsMessage.MessageAttributes = make(map[string]sqsTypes.MessageAttributeValue)
 	}
