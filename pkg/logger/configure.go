@@ -10,6 +10,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
 	"go.uber.org/zap"
@@ -55,6 +56,8 @@ func ConfigureDevelopmentLogger(ctx context.Context, level string, syncs ...io.W
 
 	tp := newTraceProvider(traceExporter)
 	otel.SetTracerProvider(tp)
+	tc := propagation.TraceContext{}
+	otel.SetTextMapPropagator(tc)
 
 	l := &logger{underlyingLogger: zapLogger}
 	ctx = l.InjectIntoContext(ctx)
@@ -157,6 +160,8 @@ func ConfigureProductionLogger(ctx context.Context, level string, syncs ...io.Wr
 
 	tp := newTraceProvider(traceExporter)
 	otel.SetTracerProvider(tp)
+	tc := propagation.TraceContext{}
+	otel.SetTextMapPropagator(tc)
 
 	l := &logger{underlyingLogger: zapLogger}
 	ctx = l.InjectIntoContext(ctx)
