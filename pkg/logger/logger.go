@@ -107,9 +107,7 @@ func (l *logger) Warn(msg string, fields ...Field) {
 
 // Error logs a message with the error level
 func (l *logger) Error(msg string, fields ...Field) {
-	span := trace.SpanFromContext(l.attachedContext)
-	span.SetStatus(codes.Error, msg)
-	span.AddEvent(msg)
+	trace.SpanFromContext(l.attachedContext).SetStatus(codes.Error, msg)
 	l.captureExceptions(fields)
 	l.underlyingLogger.Error(msg, fields...)
 }
@@ -118,6 +116,7 @@ func (l *logger) Error(msg string, fields ...Field) {
 func (l *logger) Fatal(msg string, fields ...Field) {
 	trace.SpanFromContext(l.attachedContext).SetStatus(codes.Error, msg)
 	l.captureExceptions(fields)
+	l.Sync()
 
 	l.underlyingLogger.Fatal(msg, fields...)
 }
@@ -140,6 +139,7 @@ func (l *logger) captureExceptions(fields []Field) {
 		}
 
 		span := trace.SpanFromContext(l.attachedContext)
+		span.RecordError(err, trace.WithStackTrace(true))
 
 		// Provide trace context to sentry
 		sentry.WithScope(func(scope *sentry.Scope) {
