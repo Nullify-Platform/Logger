@@ -1,4 +1,4 @@
-package propagation
+package tracer
 
 import (
 	"context"

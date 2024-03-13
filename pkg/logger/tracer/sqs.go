@@ -1,5 +1,4 @@
-// Package propagation is a package for injecting and extracting tracing from AWS SNS and SQS messages.
-package propagation
+package tracer
 
 import (
 	"context"
