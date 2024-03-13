@@ -1,3 +1,4 @@
+// package propagation is a package for injecting and extracting tracing from AWS SNS and SQS messages.
 package propagation
 
 import (
@@ -13,7 +14,8 @@ func InjectTracingIntoSQS(ctx context.Context, sqsMessage *sqsTypes.Message) {
 		sqsMessage.MessageAttributes = make(map[string]sqsTypes.MessageAttributeValue)
 	}
 
-	otelsqs.NewCarrier().Inject(ctx, sqsMessage.MessageAttributes)
+	// We are not accounting for the case where there are > 10 attributes in the context.
+	_ = otelsqs.NewCarrier().Inject(ctx, sqsMessage.MessageAttributes)
 }
 
 // ExtractTracingFromSQS extracts tracing from SQS message attributes.
