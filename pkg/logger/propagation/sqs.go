@@ -74,6 +74,6 @@ func newSQSEventMessageCarrier(attributes *map[string]events.SQSMessageAttribute
 }
 
 // ExtractTracingFromSQSEventMessage extracts tracing from SQS event message attributes.
-func ExtractTracingFromSQSEventMessage(ctx context.Context, sqsMessage events.SQSMessage) context.Context {
+func ExtractTracingFromSQSEventMessage(ctx context.Context, sqsMessage *events.SQSMessage) context.Context {
 	return otel.GetTextMapPropagator().Extract(ctx, newSQSEventMessageCarrier(&sqsMessage.MessageAttributes))
 }
