@@ -1,6 +1,6 @@
 module github.com/nullify-platform/logger
 
-go 1.22.0
+go 1.21.6
 
 require go.uber.org/multierr v1.11.0 // indirect
 
