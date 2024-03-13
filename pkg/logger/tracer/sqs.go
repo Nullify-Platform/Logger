@@ -4,10 +4,13 @@ import (
 	"context"
 
 	"github.com/aws/aws-lambda-go/events"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	sqsTypes "github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
 )
+
+const stringType = "String"
 
 type sqsMessageAttributeCarrier struct {
 	Attributes *map[string]sqsTypes.MessageAttributeValue
@@ -21,7 +24,10 @@ func (c *sqsMessageAttributeCarrier) Get(key string) string {
 }
 
 func (c *sqsMessageAttributeCarrier) Set(key, value string) {
-	(*c.Attributes)[key] = sqsTypes.MessageAttributeValue{StringValue: &value}
+	(*c.Attributes)[key] = sqsTypes.MessageAttributeValue{
+		StringValue: &value,
+		DataType:    aws.String(stringType),
+	}
 }
 
 func (c *sqsMessageAttributeCarrier) Keys() []string {
@@ -57,7 +63,10 @@ func (c *sqsEventMessageAttributeCarrier) Get(key string) string {
 }
 
 func (c *sqsEventMessageAttributeCarrier) Set(key, value string) {
-	(*c.Attributes)[key] = events.SQSMessageAttribute{StringValue: &value}
+	(*c.Attributes)[key] = events.SQSMessageAttribute{
+		StringValue: &value,
+		DataType:    stringType,
+	}
 }
 
 func (c *sqsEventMessageAttributeCarrier) Keys() []string {

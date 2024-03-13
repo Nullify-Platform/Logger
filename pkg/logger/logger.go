@@ -107,7 +107,9 @@ func (l *logger) Warn(msg string, fields ...Field) {
 
 // Error logs a message with the error level
 func (l *logger) Error(msg string, fields ...Field) {
-	trace.SpanFromContext(l.attachedContext).SetStatus(codes.Error, msg)
+	span := trace.SpanFromContext(l.attachedContext)
+	span.SetStatus(codes.Error, msg)
+	span.AddEvent(msg)
 	l.captureExceptions(fields)
 	l.underlyingLogger.Error(msg, fields...)
 }

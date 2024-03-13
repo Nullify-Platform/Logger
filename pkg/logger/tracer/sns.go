@@ -3,6 +3,7 @@ package tracer
 import (
 	"context"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sns"
 	snsTypes "github.com/aws/aws-sdk-go-v2/service/sns/types"
 	"go.opentelemetry.io/otel"
@@ -21,7 +22,10 @@ func (c *snsPublishInputAttributeCarrier) Get(key string) string {
 }
 
 func (c *snsPublishInputAttributeCarrier) Set(key, value string) {
-	(*c.Attributes)[key] = snsTypes.MessageAttributeValue{StringValue: &value}
+	(*c.Attributes)[key] = snsTypes.MessageAttributeValue{
+		StringValue: &value,
+		DataType:    aws.String(stringType),
+	}
 }
 
 func (c *snsPublishInputAttributeCarrier) Keys() []string {
