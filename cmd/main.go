@@ -12,14 +12,14 @@ import (
 func main() {
 	ctx := context.Background()
 	ctx, err := logger.ConfigureProductionLogger(ctx, "info")
-	defer logger.FromContext(ctx).Sync()
+	defer logger.F(ctx).Sync()
 	ctx, span := tracer.FromContext(ctx).Start(ctx, "main")
 	defer span.End()
 
 	span.AddEvent("main function started")
 
 	if err != nil {
-		logger.FromContext(ctx).Error("error configuring logger", logger.Err(err))
+		logger.F(ctx).Error("error configuring logger", logger.Err(err))
 		panic(err)
 	}
 
@@ -30,6 +30,6 @@ func anotherFunctionRenamed(ctx context.Context) {
 	ctx, span := tracer.FromContext(ctx).Start(ctx, "extended feature")
 	defer span.End()
 
-	logger.FromContext(ctx).Info("another function started")
-	logger.FromContext(ctx).Error("something terbl happened", logger.Err(errors.New("test error 2 in dev")))
+	logger.F(ctx).Info("another function started")
+	logger.F(ctx).Error("something terbl happened", logger.Err(errors.New("test error 2 in dev")))
 }

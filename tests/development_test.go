@@ -18,7 +18,7 @@ func TestDevelopmentLogger(t *testing.T) {
 
 	ctx, err := logger.ConfigureDevelopmentLogger(ctx, "info", &output)
 	require.Nil(t, err)
-	log := logger.FromContext(ctx)
+	log := logger.F(ctx)
 
 	log.Info("test")
 	log.Sync()

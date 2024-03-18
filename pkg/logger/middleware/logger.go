@@ -52,7 +52,7 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 		defer func() {
 			// Check if there is a parent span
 			if parentSpan := trace.SpanFromContext(ctx); !parentSpan.SpanContext().IsValid() {
-				logger.FromContext(ctx).Sync()
+				logger.F(ctx).Sync()
 			}
 		}()
 		defer span.End()
@@ -64,7 +64,7 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 				}
 
 				w.WriteHeader(http.StatusInternalServerError)
-				logger.FromContext(ctx).Error(
+				logger.F(ctx).Error(
 					"endpoint handler panicked",
 					logger.Any("err", err),
 					logger.Trace(debug.Stack()),
@@ -101,7 +101,7 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 		)
 
 		if r.URL.EscapedPath() != "/healthcheck" {
-			logger.FromContext(ctx).Info(
+			logger.F(ctx).Info(
 				"new request",
 				logger.Any("requestSummary", metadata),
 			)
@@ -126,7 +126,7 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 		span.AddEvent("response parsing complete")
 
 		if r.URL.EscapedPath() != "/healthcheck" {
-			logger.FromContext(ctx).Info(
+			logger.F(ctx).Info(
 				"request summary",
 				logger.Any("requestSummary", metadata),
 			)
