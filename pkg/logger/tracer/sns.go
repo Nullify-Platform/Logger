@@ -40,7 +40,7 @@ func newSNSPublishInputCarrier(attributes *map[string]snsTypes.MessageAttributeV
 	return &snsPublishInputAttributeCarrier{Attributes: attributes}
 }
 
-// InjectTracingIntoSNS inserts tracing from context into the SNS message attributes.
+// InjectTracingIntoSNS inserts tracing from context into the SNS message attributes. Call this function right before calling the SNS Publish API.
 func InjectTracingIntoSNS(ctx context.Context, input *sns.PublishInput) {
 	if input.MessageAttributes == nil {
 		input.MessageAttributes = make(map[string]snsTypes.MessageAttributeValue)
