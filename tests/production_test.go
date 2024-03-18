@@ -18,7 +18,7 @@ func TestProductionLogger(t *testing.T) {
 
 	ctx, err := logger.ConfigureProductionLogger(ctx, "info", &output)
 	require.Nil(t, err)
-	log := logger.FromContext(ctx)
+	log := logger.L(ctx)
 
 	log.Info("test")
 	log.Sync()

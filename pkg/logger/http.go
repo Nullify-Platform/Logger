@@ -30,7 +30,7 @@ type LoggingTransport struct {
 // RoundTrip executes the HTTP request and logs the request and response summary
 func (t *LoggingTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	ctx, span := tracer.FromContext(t.ctx).Start(t.ctx, req.URL.EscapedPath())
-	defer FromContext(ctx).Sync()
+	defer L(ctx).Sync()
 	defer span.End()
 
 	start := time.Now()
@@ -65,7 +65,7 @@ func (t *LoggingTransport) RoundTrip(req *http.Request) (*http.Response, error) 
 	})
 
 	if t.logger == nil {
-		FromContext(ctx).Info("request summary", summary)
+		L(ctx).Info("request summary", summary)
 	} else {
 		t.logger.Info("request summary", summary)
 	}
