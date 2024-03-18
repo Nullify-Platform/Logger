@@ -1,4 +1,4 @@
-module github.com/nullify-platform/logger
+module github.com/nullify-platform/logger/v2
 
 go 1.21.6
 

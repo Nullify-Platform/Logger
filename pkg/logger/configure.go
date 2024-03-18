@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/getsentry/sentry-go"
-	"github.com/nullify-platform/logger/pkg/logger/tracer"
+	"github.com/nullify-platform/logger/v2/pkg/logger/tracer"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"

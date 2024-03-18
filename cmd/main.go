@@ -5,8 +5,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/nullify-platform/logger/pkg/logger"
-	"github.com/nullify-platform/logger/pkg/logger/tracer"
+	"github.com/nullify-platform/logger/v2/pkg/logger"
+	"github.com/nullify-platform/logger/v2/pkg/logger/tracer"
 )
 
 func main() {

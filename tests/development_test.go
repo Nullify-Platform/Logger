@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/nullify-platform/logger/pkg/logger"
+	"github.com/nullify-platform/logger/v2/pkg/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

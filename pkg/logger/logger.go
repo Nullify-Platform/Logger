@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/getsentry/sentry-go"
-	"github.com/nullify-platform/logger/pkg/logger/tracer"
+	"github.com/nullify-platform/logger/v2/pkg/logger/tracer"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"

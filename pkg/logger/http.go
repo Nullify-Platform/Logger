@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/nullify-platform/logger/pkg/logger/tracer"
+	"github.com/nullify-platform/logger/v2/pkg/logger/tracer"
 	"go.uber.org/zap"
 )
 
