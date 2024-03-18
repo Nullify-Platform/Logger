@@ -1,28 +1,21 @@
 package logger
 
 import (
+	"context"
 	"net/http"
 	"time"
 
+	"github.com/nullify-platform/logger/pkg/logger/tracer"
 	"go.uber.org/zap"
 )
 
 // NewLoggingTransport creates a new http.RoundTripper that logs requests and responses
 // with the global logge
-func NewLoggingTransport(baseTransport http.RoundTripper, service string) http.RoundTripper {
+func NewLoggingTransport(baseCtx context.Context, baseTransport http.RoundTripper, service string) http.RoundTripper {
 	return &LoggingTransport{
 		baseTransport: baseTransport,
 		service:       service,
-	}
-}
-
-// NewLoggingTransportWithLogger creates a new http.RoundTripper that logs requests and responses
-// with a custom logger
-func NewLoggingTransportWithLogger(baseTransport http.RoundTripper, logger Logger, service string) http.RoundTripper {
-	return &LoggingTransport{
-		logger:        logger,
-		baseTransport: baseTransport,
-		service:       service,
+		ctx:           baseCtx,
 	}
 }
 
@@ -31,10 +24,15 @@ type LoggingTransport struct {
 	baseTransport http.RoundTripper
 	logger        Logger
 	service       string
+	ctx           context.Context
 }
 
 // RoundTrip executes the HTTP request and logs the request and response summary
 func (t *LoggingTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	ctx, span := tracer.FromContext(t.ctx).Start(t.ctx, req.URL.EscapedPath())
+	defer FromContext(ctx).Sync()
+	defer span.End()
+
 	start := time.Now()
 
 	res, err := t.baseTransport.RoundTrip(req)
@@ -67,7 +65,7 @@ func (t *LoggingTransport) RoundTrip(req *http.Request) (*http.Response, error) 
 	})
 
 	if t.logger == nil {
-		Info("request summary", summary)
+		FromContext(ctx).Info("request summary", summary)
 	} else {
 		t.logger.Info("request summary", summary)
 	}
