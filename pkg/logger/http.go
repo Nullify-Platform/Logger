@@ -29,7 +29,7 @@ type LoggingTransport struct {
 
 // RoundTrip executes the HTTP request and logs the request and response summary
 func (t *LoggingTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	ctx, span := tracer.FromContext(t.ctx).Start(t.ctx, req.URL.EscapedPath())
+	ctx, span := tracer.F(t.ctx).Start(t.ctx, req.URL.EscapedPath())
 	defer F(ctx).Sync()
 	defer span.End()
 

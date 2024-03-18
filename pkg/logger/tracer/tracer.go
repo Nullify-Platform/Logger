@@ -11,8 +11,8 @@ import (
 type tracerCtxKey struct{}
 type traceProviderCtxKey struct{}
 
-// FromContext returns the tracer from the context
-func FromContext(ctx context.Context) trace.Tracer {
+// F returns the tracer from the context
+func F(ctx context.Context) trace.Tracer {
 	t, _ := ctx.Value(tracerCtxKey{}).(trace.Tracer)
 	return t
 }

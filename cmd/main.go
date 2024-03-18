@@ -13,7 +13,7 @@ func main() {
 	ctx := context.Background()
 	ctx, err := logger.ConfigureProductionLogger(ctx, "info")
 	defer logger.F(ctx).Sync()
-	ctx, span := tracer.FromContext(ctx).Start(ctx, "main")
+	ctx, span := tracer.F(ctx).Start(ctx, "main")
 	defer span.End()
 
 	span.AddEvent("main function started")
@@ -27,7 +27,7 @@ func main() {
 }
 
 func anotherFunctionRenamed(ctx context.Context) {
-	ctx, span := tracer.FromContext(ctx).Start(ctx, "extended feature")
+	ctx, span := tracer.F(ctx).Start(ctx, "extended feature")
 	defer span.End()
 
 	logger.F(ctx).Info("another function started")
