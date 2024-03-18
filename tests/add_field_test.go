@@ -20,7 +20,7 @@ func TestAddField(t *testing.T) {
 	// create new production logger
 	ctx, err := logger.ConfigureProductionLogger(ctx, "info", &output)
 	require.Nil(t, err)
-	myLogger := logger.F(ctx)
+	myLogger := logger.L(ctx)
 
 	// log a line without the added field
 	myLogger.Info("test")

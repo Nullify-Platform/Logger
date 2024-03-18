@@ -48,11 +48,11 @@ type httpRequestMetadata struct {
 // LoggingMiddleware logs the incoming request and the outgoing response and adds relevant tracing information
 func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx, span := tracer.F(r.Context()).Start(r.Context(), fmt.Sprint("http call", r.URL.EscapedPath()))
+		ctx, span := tracer.FromContext(r.Context()).Start(r.Context(), fmt.Sprint("http call", r.URL.EscapedPath()))
 		defer func() {
 			// Check if there is a parent span
 			if parentSpan := trace.SpanFromContext(ctx); !parentSpan.SpanContext().IsValid() {
-				logger.F(ctx).Sync()
+				logger.L(ctx).Sync()
 			}
 		}()
 		defer span.End()
@@ -64,7 +64,7 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 				}
 
 				w.WriteHeader(http.StatusInternalServerError)
-				logger.F(ctx).Error(
+				logger.L(ctx).Error(
 					"endpoint handler panicked",
 					logger.Any("err", err),
 					logger.Trace(debug.Stack()),
@@ -101,7 +101,7 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 		)
 
 		if r.URL.EscapedPath() != "/healthcheck" {
-			logger.F(ctx).Info(
+			logger.L(ctx).Info(
 				"new request",
 				logger.Any("requestSummary", metadata),
 			)
@@ -126,7 +126,7 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 		span.AddEvent("response parsing complete")
 
 		if r.URL.EscapedPath() != "/healthcheck" {
-			logger.F(ctx).Info(
+			logger.L(ctx).Info(
 				"request summary",
 				logger.Any("requestSummary", metadata),
 			)

@@ -7,8 +7,8 @@ import (
 	"go.uber.org/zap"
 )
 
-// F returns the logger from the context
-func F(ctx context.Context) Logger {
+// L returns the logger from the context
+func L(ctx context.Context) Logger {
 	if ctx == nil {
 		return nil
 	}
