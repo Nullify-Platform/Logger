@@ -48,7 +48,7 @@ func anotherFunction(ctx context.Context) {
 
   // This will automatically set the parent function span to be the parent span of this new span that has started, within this trace.
 
-  // To record errors, you can use the logger.Fctx).Error() call. This will automatically capture any errors that you pass into it and pass them to GlitchTip. It will also set the span to errored, so it is highlighted in Grafana.
+  // To record errors, you can use the logger.F(ctx).Error() call. This will automatically capture any errors that you pass into it and pass them to GlitchTip. It will also set the span to errored, so it is highlighted in Grafana.
 
   error := errors.New("this is an error")
   logger.F(err).Error("this is an error", error)
