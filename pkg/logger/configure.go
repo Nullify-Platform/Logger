@@ -4,7 +4,11 @@ import (
 	"context"
 	"io"
 	"os"
+	"strings"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/getsentry/sentry-go"
 	"github.com/nullify-platform/logger/pkg/logger/tracer"
 	"go.opentelemetry.io/otel"
@@ -84,9 +88,59 @@ func initialiseSentry() {
 	}
 }
 
+func getSecretFromParamStore(varName string) *string {
+	// Check if the param name is defined in the environment
+	paramName := os.Getenv(varName)
+	if len(paramName) == 0 {
+		zap.L().Error("param name not defined in environment", zap.String("varName", varName))
+		return nil
+	}
+
+	ctx := context.Background()
+	cfg, err := config.LoadDefaultConfig(ctx)
+	if err != nil {
+		zap.L().Fatal("failed to load AWS config", zap.Error(err), zap.String("paramName", paramName))
+		return nil
+	}
+
+	svc := ssm.NewFromConfig(cfg)
+	param, err := svc.GetParameter(ctx, &ssm.GetParameterInput{
+		Name:           &paramName,
+		WithDecryption: aws.Bool(true),
+	})
+	if err != nil {
+		zap.L().Fatal("failed to fetch parameter", zap.Error(err), zap.String("paramName", paramName))
+		return nil
+	}
+
+	return param.Parameter.Value
+}
+
 func newExporter(ctx context.Context) (sdktrace.SpanExporter, error) {
 	if os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") != "" {
-		traceExporter, err := otlptracehttp.New(ctx)
+		// Check if there are extra headers in the param store
+		headers := getSecretFromParamStore("OTEL_EXPORTER_OTLP_HEADERS_NAME")
+		if headers == nil {
+			traceExporter, err := otlptracehttp.New(ctx)
+			if err != nil {
+				return nil, err
+			}
+
+			return traceExporter, nil
+		}
+
+		var headerMap = make(map[string]string)
+		for _, header := range strings.Split(*headers, ",") {
+			parts := strings.SplitN(header, "=", 2)
+			if len(parts) != 2 {
+				zap.L().Error("invalid header format", zap.String("header", header))
+				continue
+			}
+
+			headerMap[parts[0]] = parts[1]
+		}
+
+		traceExporter, err := otlptracehttp.New(ctx, otlptracehttp.WithHeaders(headerMap))
 		if err != nil {
 			return nil, err
 		}
