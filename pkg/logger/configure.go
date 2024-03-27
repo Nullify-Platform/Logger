@@ -96,7 +96,6 @@ func getSecretFromParamStore(varName string) *string {
 		return nil
 	}
 
-	// Try to fetch the param from
 	ctx := context.Background()
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
@@ -130,7 +129,7 @@ func newExporter(ctx context.Context) (sdktrace.SpanExporter, error) {
 			return traceExporter, nil
 		}
 
-		var headerMap map[string]string = make(map[string]string)
+		var headerMap = make(map[string]string)
 		for _, header := range strings.Split(*headers, ",") {
 			parts := strings.Split(header, "=")
 			if len(parts) != 2 {
