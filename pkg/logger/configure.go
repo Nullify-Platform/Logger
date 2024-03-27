@@ -89,6 +89,7 @@ func initialiseSentry() {
 }
 
 func getSecretFromParamStore(varName string) *string {
+	zap.L().Info("fetching secret from param store", zap.String("varName", varName))
 	// Check if the param name is defined in the environment
 	paramName := os.Getenv(varName)
 	if len(paramName) == 0 {
@@ -131,7 +132,7 @@ func newExporter(ctx context.Context) (sdktrace.SpanExporter, error) {
 
 		var headerMap = make(map[string]string)
 		for _, header := range strings.Split(*headers, ",") {
-			parts := strings.Split(header, "=")
+			parts := strings.SplitN(header, "=", 2)
 			if len(parts) != 2 {
 				zap.L().Error("invalid header format", zap.String("header", header))
 				continue
@@ -140,6 +141,7 @@ func newExporter(ctx context.Context) (sdktrace.SpanExporter, error) {
 			headerMap[parts[0]] = parts[1]
 		}
 
+		zap.L().Info("using custom headers for OTLP exporter", zap.Any("headers", headerMap))
 		traceExporter, err := otlptracehttp.New(ctx, otlptracehttp.WithHeaders(headerMap))
 		if err != nil {
 			return nil, err
