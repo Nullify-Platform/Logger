@@ -89,7 +89,6 @@ func initialiseSentry() {
 }
 
 func getSecretFromParamStore(varName string) *string {
-	zap.L().Info("fetching secret from param store", zap.String("varName", varName))
 	// Check if the param name is defined in the environment
 	paramName := os.Getenv(varName)
 	if len(paramName) == 0 {
@@ -141,7 +140,6 @@ func newExporter(ctx context.Context) (sdktrace.SpanExporter, error) {
 			headerMap[parts[0]] = parts[1]
 		}
 
-		zap.L().Info("using custom headers for OTLP exporter", zap.Any("headers", headerMap))
 		traceExporter, err := otlptracehttp.New(ctx, otlptracehttp.WithHeaders(headerMap))
 		if err != nil {
 			return nil, err
