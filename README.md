@@ -55,6 +55,20 @@ func anotherFunction(ctx context.Context) {
 }
 ```
 
+## Error Collection
+
+To collect errors and send them to GlitchTip, you have to set the `SENTRY_DSN` environment variable.
+
+## OpenTelemetry Exporting
+
+To actually have your traces exported, you need to set a few environment variables in your service:
+
+- `OTEL_EXPORTER_OTLP_PROTOCOL`: typically set to `http/protobuf`; this is the protocol that the traces are sent over.
+- `OTEL_EXPORTER_OTLP_ENDPOINT`: the endpoint that the traces are sent to.
+- `OTEL_EXPORTER_OTLP_HEADERS_NAME`: the name of the parameter in aws parameter store that contains the headers for the OTLP exporter.
+- `OTEL_RESOURCE_ATTRIBUTES`: the attributes that are associated with the service. Typically, you would set the environment here like `deployment.environment=production`.
+- `OTEL_SERVICE_NAME`: the name of the service that is being traced.
+
 ## Install
 
 Dependencies:
