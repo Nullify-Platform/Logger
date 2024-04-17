@@ -3,6 +3,7 @@ package logger
 import (
 	"context"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/nullify-platform/logger/pkg/logger/tracer"
@@ -42,6 +43,10 @@ func (t *LoggingTransport) RoundTrip(req *http.Request) (*http.Response, error) 
 
 	reqHeaders := []string{}
 	for header, values := range req.Header {
+		if strings.ToLower(header) == "authorization" {
+			continue
+		}
+
 		for _, value := range values {
 			reqHeaders = append(reqHeaders, header+": "+value)
 		}
