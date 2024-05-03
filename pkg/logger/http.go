@@ -41,7 +41,7 @@ func (t *LoggingTransport) RoundTrip(req *http.Request) (*http.Response, error) 
 		return res, err
 	}
 
-	summary := createHttpRequestSummary(t.service, time.Since(start), req, res)
+	summary := createRequestSummary(t.service, time.Since(start), req, res)
 	logger := t.logger
 	if logger == nil {
 		logger = L(ctx)
@@ -73,32 +73,32 @@ type HTTPRequestSummary struct {
 // HTTPRequest logs a summary of an HTTP request
 // service is the name of the service the request is being made to
 func (l *logger) HTTPRequest(service string, duration time.Duration, req *http.Request, res *http.Response) {
-	httpSummary := createHttpRequestSummary(service, duration, req, res)
+	summary := createRequestSummary(service, duration, req, res)
 
 	if res.StatusCode >= 500 {
-		l.Warn("request summary", httpSummary)
+		l.Warn("request summary", summary)
 	} else if res.StatusCode >= 400 {
-		l.Info("request summary", httpSummary)
+		l.Info("request summary", summary)
 	} else {
-		l.Debug("request summary", httpSummary)
+		l.Debug("request summary", summary)
 	}
 }
 
 // HTTPRequest logs a summary of an HTTP request
 // service is the name of the service the request is being made to
 func HTTPRequest(service string, duration time.Duration, req *http.Request, res *http.Response) {
-	httpSummary := createHttpRequestSummary(service, duration, req, res)
+	summary := createRequestSummary(service, duration, req, res)
 
 	if res.StatusCode >= 500 {
-		zap.L().Warn("request summary", httpSummary)
+		zap.L().Warn("request summary", summary)
 	} else if res.StatusCode >= 400 {
-		zap.L().Info("request summary", httpSummary)
+		zap.L().Info("request summary", summary)
 	} else {
-		zap.L().Debug("request summary", httpSummary)
+		zap.L().Debug("request summary", summary)
 	}
 }
 
-func createHttpRequestSummary(service string, duration time.Duration, req *http.Request, res *http.Response) zap.Field {
+func createRequestSummary(service string, duration time.Duration, req *http.Request, res *http.Response) zap.Field {
 	reqHeaders := []string{}
 	for header, values := range req.Header {
 		if strings.ToLower(header) == "authorization" {
