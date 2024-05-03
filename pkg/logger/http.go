@@ -41,38 +41,18 @@ func (t *LoggingTransport) RoundTrip(req *http.Request) (*http.Response, error) 
 		return res, err
 	}
 
-	reqHeaders := []string{}
-	for header, values := range req.Header {
-		if strings.ToLower(header) == "authorization" {
-			continue
-		}
-
-		for _, value := range values {
-			reqHeaders = append(reqHeaders, header+": "+value)
-		}
+	summary := createHttpRequestSummary(t.service, time.Since(start), req, res)
+	logger := t.logger
+	if logger == nil {
+		logger = L(ctx)
 	}
 
-	resHeaders := []string{}
-	for header, values := range res.Header {
-		for _, value := range values {
-			resHeaders = append(resHeaders, header+": "+value)
-		}
-	}
-
-	summary := Any("requestSummary", &HTTPRequestSummary{
-		Service:         t.service,
-		Method:          req.Method,
-		URL:             req.URL.String(),
-		StatusCode:      res.StatusCode,
-		RequestHeaders:  reqHeaders,
-		ResponseHeaders: resHeaders,
-		Duration:        time.Since(start),
-	})
-
-	if t.logger == nil {
-		L(ctx).Info("request summary", summary)
+	if res.StatusCode >= 500 {
+		logger.Warn("request summary", summary)
+	} else if res.StatusCode >= 400 {
+		logger.Info("request summary", summary)
 	} else {
-		t.logger.Info("request summary", summary)
+		logger.Debug("request summary", summary)
 	}
 
 	return res, err
@@ -93,39 +73,39 @@ type HTTPRequestSummary struct {
 // HTTPRequest logs a summary of an HTTP request
 // service is the name of the service the request is being made to
 func (l *logger) HTTPRequest(service string, duration time.Duration, req *http.Request, res *http.Response) {
-	reqHeaders := []string{}
-	for header, values := range req.Header {
-		for _, value := range values {
-			reqHeaders = append(reqHeaders, header+": "+value)
-		}
-	}
+	httpSummary := createHttpRequestSummary(service, duration, req, res)
 
-	resHeaders := []string{}
-	for header, values := range res.Header {
-		for _, value := range values {
-			resHeaders = append(resHeaders, header+": "+value)
-		}
+	if res.StatusCode >= 500 {
+		l.Warn("request summary", httpSummary)
+	} else if res.StatusCode >= 400 {
+		l.Info("request summary", httpSummary)
+	} else {
+		l.Debug("request summary", httpSummary)
 	}
-
-	l.Info(
-		"request summary",
-		Any("httpSummary", &HTTPRequestSummary{
-			Service:         service,
-			Method:          req.Method,
-			URL:             req.URL.String(),
-			StatusCode:      res.StatusCode,
-			RequestHeaders:  reqHeaders,
-			ResponseHeaders: resHeaders,
-			Duration:        duration,
-		}),
-	)
 }
 
 // HTTPRequest logs a summary of an HTTP request
 // service is the name of the service the request is being made to
 func HTTPRequest(service string, duration time.Duration, req *http.Request, res *http.Response) {
+	httpSummary := createHttpRequestSummary(service, duration, req, res)
+
+	if res.StatusCode >= 500 {
+		zap.L().Warn("request summary", httpSummary)
+	} else if res.StatusCode >= 400 {
+		zap.L().Info("request summary", httpSummary)
+	} else {
+		zap.L().Debug("request summary", httpSummary)
+	}
+}
+
+func createHttpRequestSummary(service string, duration time.Duration, req *http.Request, res *http.Response) zap.Field {
 	reqHeaders := []string{}
 	for header, values := range req.Header {
+		if strings.ToLower(header) == "authorization" {
+			reqHeaders = append(reqHeaders, header+": ****")
+			continue
+		}
+
 		for _, value := range values {
 			reqHeaders = append(reqHeaders, header+": "+value)
 		}
@@ -138,17 +118,14 @@ func HTTPRequest(service string, duration time.Duration, req *http.Request, res 
 		}
 	}
 
-	zap.L().Info(
-		"request summary",
-		Any("httpSummary", &HTTPRequestSummary{
-			Service:         service,
-			Host:            req.Host,
-			Method:          req.Method,
-			URL:             req.URL.String(),
-			StatusCode:      res.StatusCode,
-			RequestHeaders:  reqHeaders,
-			ResponseHeaders: resHeaders,
-			Duration:        duration,
-		}),
-	)
+	return Any("requestSummary", &HTTPRequestSummary{
+		Service:         service,
+		Host:            req.Host,
+		Method:          req.Method,
+		URL:             req.URL.String(),
+		StatusCode:      res.StatusCode,
+		RequestHeaders:  reqHeaders,
+		ResponseHeaders: resHeaders,
+		Duration:        duration,
+	})
 }
