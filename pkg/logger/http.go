@@ -76,7 +76,7 @@ func (l *logger) HTTPRequest(service string, duration time.Duration, req *http.R
 	summary := createRequestSummary(service, duration, req, res)
 
 	if res.StatusCode >= 500 {
-		l.Warn("request summary", summary)
+		l.Error("request summary", summary)
 	} else if res.StatusCode >= 400 {
 		l.Info("request summary", summary)
 	} else {
