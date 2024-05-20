@@ -1,1 +1,1 @@
-FROM golangci/golangci-lint:v1.58.1@sha256:5bef7ef61a4e2529b39d4e39de3564d82c38291636cdb9b79a656cedb09ab175 as golangci-lint
+FROM golangci/golangci-lint:v1.58.2@sha256:6d951ed621e2e4c4c7de1b284341b5eb62911b67f64d9ef83d78966fdff5b022 as golangci-lint
