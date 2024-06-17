@@ -43,7 +43,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sns v1.29.11
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.32.6
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.50.6
-	github.com/getsentry/sentry-go v0.28.0
+	github.com/getsentry/sentry-go v0.28.1
 	github.com/stretchr/testify v1.9.0
 	go.opentelemetry.io/otel v1.27.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.27.0
