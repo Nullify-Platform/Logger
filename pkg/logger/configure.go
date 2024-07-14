@@ -162,7 +162,7 @@ func initialiseSentry() {
 }
 
 func getSecretFromParamStore(varName string) *string {
-	// Check if the param name is defined in the environment
+	// check if the param name is defined in the environment
 	paramName := os.Getenv(varName)
 	if paramName == "" {
 		return nil

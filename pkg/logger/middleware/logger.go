@@ -50,7 +50,7 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx, span := tracer.FromContext(r.Context()).Start(r.Context(), fmt.Sprint("http call", r.URL.EscapedPath()))
 		defer func() {
-			// Check if there is a parent span
+			// check if there is a parent span
 			if parentSpan := trace.SpanFromContext(ctx); !parentSpan.SpanContext().IsValid() {
 				logger.L(ctx).Sync()
 			}
