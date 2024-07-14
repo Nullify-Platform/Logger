@@ -1,4 +1,4 @@
-// Package main is an example application that uses the logger package
+// package main is an example application that uses the logger package
 package main
 
 import (

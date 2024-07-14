@@ -141,7 +141,7 @@ func (l *logger) captureExceptions(fields []Field) {
 		span := trace.SpanFromContext(l.attachedContext)
 		span.RecordError(err, trace.WithStackTrace(true))
 
-		// Provide trace context to sentry
+		// provide trace context to sentry
 		sentry.WithScope(func(scope *sentry.Scope) {
 			scope.SetContext("aws", map[string]interface{}{
 				"lambda":    os.Getenv("AWS_LAMBDA_FUNCTION_NAME"),
