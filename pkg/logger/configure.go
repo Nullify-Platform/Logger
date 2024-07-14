@@ -33,7 +33,8 @@ func ConfigureDevelopmentLogger(ctx context.Context, level string, syncs ...io.W
 	// configure level
 	zapLevel, err := zapcore.ParseLevel(level)
 	if err != nil {
-		zap.L().Fatal("failed to parse log level")
+		zap.L().Error("failed to parse log level, using info", zap.Error(err))
+		zapLevel = zapcore.InfoLevel
 	}
 
 	var sync io.Writer = os.Stdout
@@ -55,7 +56,7 @@ func ConfigureDevelopmentLogger(ctx context.Context, level string, syncs ...io.W
 
 	traceExporter, err := newExporter(ctx)
 	if err != nil {
-		zap.L().Fatal("failed to create trace exporter", zap.Error(err))
+		zap.L().Error("failed to create trace exporter, continuing...", zap.Error(err))
 	}
 
 	tp, err := newTraceProvider(traceExporter)
@@ -78,7 +79,8 @@ func ConfigureDevelopmentLogger(ctx context.Context, level string, syncs ...io.W
 func ConfigureProductionLogger(ctx context.Context, level string, syncs ...io.Writer) (context.Context, error) {
 	zapLevel, err := zapcore.ParseLevel(level)
 	if err != nil {
-		zap.L().Fatal("failed to parse log level")
+		zap.L().Error("failed to parse log level, using info", zap.Error(err))
+		zapLevel = zapcore.InfoLevel
 	}
 
 	var sync io.Writer = os.Stdout
@@ -102,7 +104,7 @@ func ConfigureProductionLogger(ctx context.Context, level string, syncs ...io.Wr
 
 	traceExporter, err := newExporter(ctx)
 	if err != nil {
-		zap.L().Fatal("failed to create trace exporter", zap.Error(err))
+		zap.L().Error("failed to create trace exporter, continuing", zap.Error(err))
 	}
 
 	tp, err := newTraceProvider(traceExporter)
@@ -170,7 +172,7 @@ func getSecretFromParamStore(varName string) *string {
 	ctx := context.Background()
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
-		zap.L().Fatal("failed to load AWS config", zap.Error(err), zap.String("paramName", paramName))
+		zap.L().Error("failed to load AWS config", zap.Error(err), zap.String("paramName", paramName))
 		return nil
 	}
 
@@ -180,7 +182,7 @@ func getSecretFromParamStore(varName string) *string {
 		WithDecryption: aws.Bool(true),
 	})
 	if err != nil {
-		zap.L().Fatal("failed to fetch parameter", zap.Error(err), zap.String("paramName", paramName))
+		zap.L().Error("failed to fetch parameter", zap.Error(err), zap.String("paramName", paramName))
 		return nil
 	}
 
