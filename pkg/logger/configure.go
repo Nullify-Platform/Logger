@@ -165,14 +165,13 @@ func getSecretFromParamStore(varName string) *string {
 	// Check if the param name is defined in the environment
 	paramName := os.Getenv(varName)
 	if paramName == "" {
-		zap.L().Error("param name not defined in environment", zap.String("varName", varName))
 		return nil
 	}
 
 	ctx := context.Background()
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
-		zap.L().Error("failed to load AWS config", zap.Error(err), zap.String("paramName", paramName))
+		zap.L().Error("failed to load aws config", zap.Error(err), zap.String("paramName", paramName))
 		return nil
 	}
 
