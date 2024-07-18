@@ -75,7 +75,7 @@ func (l *logger) AddFields(fields ...Field) {
 func (l *logger) Sync() {
 	err := tracer.ForceFlush(l.attachedContext)
 	if err != nil {
-		l.Error("tracer.ForceFlush failed", Err(err))
+		l.Warn("tracer.ForceFlush failed", Err(err))
 	}
 
 	if os.Getenv("SENTRY_DSN") != "" {
