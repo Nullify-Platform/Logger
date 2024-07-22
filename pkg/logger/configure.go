@@ -178,10 +178,14 @@ func AddLambdaTagsToSentryEvents(ctx context.Context, awsConfig aws.Config) erro
 	// called by client.CaptureEvent() -> .processEvent() -> .prepareEvent()
 	sentry.CurrentHub().Client().AddEventProcessor(func(event *sentry.Event, _ *sentry.EventHint) *sentry.Event {
 		event.Environment = functionDetails.Tags["Environment"]
-		event.ServerName = os.Getenv("AWS_LAMBDA_FUNCTION_NAME")
-		event.Tags["service"] = functionDetails.Tags["Service"]
-		event.Tags["tenant"] = functionDetails.Tags["Tenant"]
+		event.ServerName = functionName
+
+		event.Tags["environment"] = functionDetails.Tags["Environment"]
 		event.Tags["region"] = os.Getenv("AWS_REGION")
+		event.Tags["tenant"] = functionDetails.Tags["Tenant"]
+		event.Tags["service"] = functionDetails.Tags["Service"]
+		event.Tags["function"] = functionName
+
 		return event
 	})
 
