@@ -162,7 +162,7 @@ func initialiseSentry() {
 	}
 }
 
-// AddLambdaTagsToSentryEvents() Sets `Environment`, `ServerName` and adds `service`, `tenant` and `region` tags to Sentry events
+// AddLambdaTagsToSentryEvents Sets `Environment`, `ServerName` and adds `service`, `tenant` and `region` tags to Sentry events
 func AddLambdaTagsToSentryEvents(ctx context.Context, awsConfig aws.Config) error {
 	lambdaClient := lambda.NewFromConfig(awsConfig)
 
