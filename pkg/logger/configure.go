@@ -55,7 +55,7 @@ func ConfigureDevelopmentLogger(ctx context.Context, level string, syncs ...io.W
 	)
 	zap.ReplaceGlobals(zapLogger)
 
-	traceExporter, err := newExporter(ctx)
+	traceExporter, err := newExporter(ctx, aws.Config{})
 	if err != nil {
 		zap.L().Error("failed to create trace exporter, continuing...", zap.Error(err))
 	}
@@ -101,9 +101,15 @@ func ConfigureProductionLogger(ctx context.Context, level string, syncs ...io.Wr
 	)
 	zap.ReplaceGlobals(zapLogger)
 
-	initialiseSentry()
+	cfg, err := config.LoadDefaultConfig(ctx)
+	if err != nil {
+		zap.L().Error("failed to load aws config", zap.Error(err))
+		return ctx, err
+	}
 
-	traceExporter, err := newExporter(ctx)
+	initialiseSentry(ctx, cfg)
+
+	traceExporter, err := newExporter(ctx, cfg)
 	if err != nil {
 		zap.L().Error("failed to create trace exporter, continuing", zap.Error(err))
 	}
@@ -144,7 +150,7 @@ func newTraceProvider(exp sdktrace.SpanExporter) (*sdktrace.TracerProvider, erro
 	), nil
 }
 
-func initialiseSentry() {
+func initialiseSentry(ctx context.Context, cfg aws.Config) {
 	if os.Getenv("SENTRY_DSN") == "" {
 		return
 	}
@@ -159,6 +165,11 @@ func initialiseSentry() {
 	if err != nil {
 		zap.L().Error("failed to initialise sentry", zap.Error(err))
 		return
+	}
+
+	err = AddLambdaTagsToSentryEvents(ctx, cfg)
+	if err != nil {
+		zap.L().Error("failed to add sentry event processor", zap.Error(err))
 	}
 }
 
@@ -188,17 +199,10 @@ func AddLambdaTagsToSentryEvents(ctx context.Context, awsConfig aws.Config) erro
 	return nil
 }
 
-func getSecretFromParamStore(varName string) *string {
+func getSecretFromParamStore(ctx context.Context, cfg aws.Config, varName string) *string {
 	// check if the param name is defined in the environment
 	paramName := os.Getenv(varName)
 	if paramName == "" {
-		return nil
-	}
-
-	ctx := context.Background()
-	cfg, err := config.LoadDefaultConfig(ctx)
-	if err != nil {
-		zap.L().Error("failed to load aws config", zap.Error(err), zap.String("paramName", paramName))
 		return nil
 	}
 
@@ -215,9 +219,9 @@ func getSecretFromParamStore(varName string) *string {
 	return param.Parameter.Value
 }
 
-func newExporter(ctx context.Context) (sdktrace.SpanExporter, error) {
+func newExporter(ctx context.Context, cfg aws.Config) (sdktrace.SpanExporter, error) {
 	if os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") != "" {
-		headers := getSecretFromParamStore("OTEL_EXPORTER_OTLP_HEADERS_NAME")
+		headers := getSecretFromParamStore(ctx, cfg, "OTEL_EXPORTER_OTLP_HEADERS_NAME")
 		if headers == nil {
 			traceExporter, err := otlptracehttp.New(ctx)
 			if err != nil {
