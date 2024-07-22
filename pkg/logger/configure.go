@@ -8,6 +8,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/lambda"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/getsentry/sentry-go"
 	"github.com/nullify-platform/logger/pkg/logger/tracer"
@@ -159,6 +160,31 @@ func initialiseSentry() {
 		zap.L().Error("failed to initialise sentry", zap.Error(err))
 		return
 	}
+}
+
+func AddLambdaTagsToSentryEvents(ctx context.Context, awsConfig aws.Config) error {
+	lambdaClient := lambda.NewFromConfig(awsConfig)
+
+	functionName := os.Getenv("AWS_LAMBDA_FUNCTION_NAME")
+	functionDetails, err := lambdaClient.GetFunction(ctx, &lambda.GetFunctionInput{
+		FunctionName: aws.String(functionName),
+	})
+	if err != nil {
+		zap.L().Error("failed to get lambda function details", zap.Error(err))
+		return err
+	}
+
+	// called by client.CaptureEvent() -> .processEvent() -> .prepareEvent()
+	sentry.CurrentHub().Client().AddEventProcessor(func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
+		event.Environment = functionDetails.Tags["Environment"]
+		event.ServerName = os.Getenv("AWS_LAMBDA_FUNCTION_NAME")
+		event.Tags["service"] = functionDetails.Tags["Service"]
+		event.Tags["tenant"] = functionDetails.Tags["Tenant"]
+		event.Tags["region"] = os.Getenv("AWS_REGION")
+		return event
+	})
+
+	return nil
 }
 
 func getSecretFromParamStore(varName string) *string {
