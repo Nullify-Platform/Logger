@@ -3,7 +3,9 @@ package logger
 
 import (
 	"context"
+	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/getsentry/sentry-go"
@@ -144,9 +146,11 @@ func (l *logger) captureExceptions(fields []Field) {
 		// provide trace context to sentry
 		sentry.WithScope(func(scope *sentry.Scope) {
 			scope.SetContext("aws", map[string]interface{}{
+				"region":    os.Getenv("AWS_REGION"),
 				"lambda":    os.Getenv("AWS_LAMBDA_FUNCTION_NAME"),
 				"logGroup":  os.Getenv("AWS_LAMBDA_LOG_GROUP_NAME"),
 				"logStream": os.Getenv("AWS_LAMBDA_LOG_STREAM_NAME"),
+				"logsURL":   formatLogsURL(os.Getenv("AWS_REGION"), os.Getenv("AWS_LAMBDA_LOG_GROUP_NAME"), os.Getenv("AWS_LAMBDA_LOG_STREAM_NAME")),
 			})
 			scope.SetContext("trace", map[string]interface{}{
 				"traceID": span.SpanContext().TraceID().String(),
@@ -156,4 +160,16 @@ func (l *logger) captureExceptions(fields []Field) {
 			sentry.CaptureException(err)
 		})
 	}
+}
+
+func formatLogsURL(region string, logGroupName string, logStreamName string) string {
+	logGroupName = strings.ReplaceAll(logGroupName, "/", "$252F")
+
+	logStreamName = strings.ReplaceAll(logStreamName, "$", "$2524")
+	logStreamName = strings.ReplaceAll(logStreamName, "/", "$252F")
+	logStreamName = strings.ReplaceAll(logStreamName, "[", "$255B")
+	logStreamName = strings.ReplaceAll(logStreamName, "]", "$255D")
+
+	return fmt.Sprintf("https://ap-southeast-2.console.aws.amazon.com/cloudwatch/home?region=%s#logsV2:log-groups/log-group/%s/log-events/%s",
+		region, logGroupName, logStreamName)
 }
