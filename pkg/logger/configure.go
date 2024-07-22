@@ -162,6 +162,7 @@ func initialiseSentry() {
 	}
 }
 
+// AddLambdaTagsToSentryEvents() Sets `Environment`, `ServerName` and adds `service`, `tenant` and `region` tags to Sentry events
 func AddLambdaTagsToSentryEvents(ctx context.Context, awsConfig aws.Config) error {
 	lambdaClient := lambda.NewFromConfig(awsConfig)
 
@@ -175,7 +176,7 @@ func AddLambdaTagsToSentryEvents(ctx context.Context, awsConfig aws.Config) erro
 	}
 
 	// called by client.CaptureEvent() -> .processEvent() -> .prepareEvent()
-	sentry.CurrentHub().Client().AddEventProcessor(func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
+	sentry.CurrentHub().Client().AddEventProcessor(func(event *sentry.Event, _ *sentry.EventHint) *sentry.Event {
 		event.Environment = functionDetails.Tags["Environment"]
 		event.ServerName = os.Getenv("AWS_LAMBDA_FUNCTION_NAME")
 		event.Tags["service"] = functionDetails.Tags["Service"]
