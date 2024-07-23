@@ -2,7 +2,11 @@ package logger
 
 import (
 	"testing"
+	"time"
 
+	"github.com/pkg/errors"
+
+	"github.com/getsentry/sentry-go"
 	"github.com/stretchr/testify/require"
 )
 
@@ -18,4 +22,45 @@ func TestFormatLogsURL(t *testing.T) {
 	result := formatLogsURL(region, logGroupName, logStreamName)
 
 	require.Equal(t, expectedURL, result)
+}
+
+func TestIntegrationCaptureException(t *testing.T) {
+	t.Skip("Debug manually & check logs")
+	t.Setenv("SENTRY_DSN", "https://d678cbc547e946d38a483bd3651fadea@app.glitchtip.com/6485")
+	t.Setenv("AWS_REGION", "localhost")
+
+	initialiseSentry()
+
+	// fix the "missing mechanism type" error
+	fixMechanismTypeInSentryEvents()
+
+	// add tags to the sentry events
+	addTagsToSentryEvents("logger_test.go", map[string]string{
+		"Environment": "integration-test",
+		"Service":     "logger",
+		"Tenant":      "nullify-integration-test",
+	})
+
+	err := testFunctionA()
+	fields := []Field{Err(err)}
+
+	// when
+	l := logger{}
+	l.captureExceptions(fields)
+
+	// need to manually check the logs for:
+	// Sending event failed with the following error: {"detail": [{"type": "missing", "loc": ["body", "payload", "exception", "list[function-after[check_type_value(), function-wrap[_run_root_validator()]]]", 0, "mechanism", "type"], "msg": "Field required"},
+	sentry.Flush(30 * time.Second)
+}
+
+func testFunctionA() error {
+	return errors.WithStack(testFunctionB())
+}
+
+func testFunctionB() error {
+	return errors.WithStack(testFunctionC())
+}
+
+func testFunctionC() error {
+	return errors.New("test error")
 }
