@@ -201,7 +201,6 @@ func addTagsToSentryEvents(functionName string, tags map[string]string) {
 func fixMechanismTypeInSentryEvents() {
 	// called by client.CaptureEvent() -> .processEvent() -> .prepareEvent()
 	sentry.CurrentHub().Client().AddEventProcessor(func(event *sentry.Event, _ *sentry.EventHint) *sentry.Event {
-
 		for i := range event.Exception {
 			if event.Exception[i].Mechanism != nil && event.Exception[i].Mechanism.Type == "" {
 				// avoid "list[function-after[check_type_value(), function-wrap[_run_root_validator()]]]",
