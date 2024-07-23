@@ -160,6 +160,8 @@ func initialiseSentry() {
 		zap.L().Error("failed to initialise sentry", zap.Error(err))
 		return
 	}
+
+	fixMechanismTypeInSentryEvents()
 }
 
 // AddLambdaTagsToSentryEvents Sets `Environment`, `ServerName` and adds `service`, `tenant` and `region` tags to Sentry events
@@ -175,21 +177,39 @@ func AddLambdaTagsToSentryEvents(ctx context.Context, awsConfig aws.Config) erro
 		return err
 	}
 
+	addTagsToSentryEvents(functionName, functionDetails.Tags)
+
+	return nil
+}
+
+func addTagsToSentryEvents(functionName string, tags map[string]string) {
 	// called by client.CaptureEvent() -> .processEvent() -> .prepareEvent()
 	sentry.CurrentHub().Client().AddEventProcessor(func(event *sentry.Event, _ *sentry.EventHint) *sentry.Event {
-		event.Environment = functionDetails.Tags["Environment"]
+		event.Environment = tags["Environment"]
 		event.ServerName = functionName
 
-		event.Tags["environment"] = functionDetails.Tags["Environment"]
+		event.Tags["environment"] = tags["Environment"]
 		event.Tags["region"] = os.Getenv("AWS_REGION")
-		event.Tags["tenant"] = functionDetails.Tags["Tenant"]
-		event.Tags["service"] = functionDetails.Tags["Service"]
+		event.Tags["tenant"] = tags["Tenant"]
+		event.Tags["service"] = tags["Service"]
 		event.Tags["function"] = functionName
 
 		return event
 	})
+}
 
-	return nil
+func fixMechanismTypeInSentryEvents() {
+	// called by client.CaptureEvent() -> .processEvent() -> .prepareEvent()
+	sentry.CurrentHub().Client().AddEventProcessor(func(event *sentry.Event, _ *sentry.EventHint) *sentry.Event {
+		for i := range event.Exception {
+			if event.Exception[i].Mechanism != nil && event.Exception[i].Mechanism.Type == "" {
+				// avoid "list[function-after[check_type_value(), function-wrap[_run_root_validator()]]]",
+				event.Exception[i].Mechanism.Type = "error"
+			}
+		}
+
+		return event
+	})
 }
 
 func getSecretFromParamStore(varName string) *string {
