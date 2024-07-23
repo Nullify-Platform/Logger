@@ -170,6 +170,7 @@ func formatLogsURL(region string, logGroupName string, logStreamName string) str
 	logStreamName = strings.ReplaceAll(logStreamName, "[", "$255B")
 	logStreamName = strings.ReplaceAll(logStreamName, "]", "$255D")
 
-	return fmt.Sprintf("https://ap-southeast-2.console.aws.amazon.com/cloudwatch/home?region=%s#logsV2:log-groups/log-group/%s/log-events/%s",
-		region, logGroupName, logStreamName)
+	return fmt.Sprintf("https://%s.console.aws.amazon.com/cloudwatch/home?region=%s#logsV2:log-groups/log-group/%s/log-events/%s",
+		region, region, logGroupName, logStreamName,
+	)
 }
