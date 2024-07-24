@@ -16,11 +16,12 @@ func L(ctx context.Context) Logger {
 	var fields []zap.Field
 
 	if l, ok := ctx.Value(loggerCtxKey{}).(Logger); ok {
-		if traceID := trace.SpanFromContext(ctx).SpanContext().TraceID(); traceID.IsValid() {
+		spanContext := trace.SpanFromContext(ctx).SpanContext()
+		if traceID := spanContext.TraceID(); traceID.IsValid() {
 			fields = append(fields, zap.String("trace-id", traceID.String()))
 		}
 
-		if spanID := trace.SpanFromContext(ctx).SpanContext().SpanID(); spanID.IsValid() {
+		if spanID := spanContext.SpanID(); spanID.IsValid() {
 			fields = append(fields, zap.String("span-id", spanID.String()))
 		}
 

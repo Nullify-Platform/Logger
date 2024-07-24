@@ -2,12 +2,16 @@ package logger
 
 import (
 	"context"
+	"encoding/json"
 	"io"
+	"net/http"
 	"os"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/ecs"
+	"github.com/aws/aws-sdk-go-v2/service/ecs/types"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/getsentry/sentry-go"
@@ -177,22 +181,111 @@ func AddLambdaTagsToSentryEvents(ctx context.Context, awsConfig aws.Config) erro
 		return err
 	}
 
-	addTagsToSentryEvents(functionName, functionDetails.Tags)
+	addTagsToSentryEvents(functionName, os.Getenv("AWS_REGION"), functionDetails.Tags)
 
 	return nil
 }
 
-func addTagsToSentryEvents(functionName string, tags map[string]string) {
+type ecsMetadata struct {
+	DockerID string `json:"DockerId"`
+	Name     string `json:"Name"`
+	Labels   struct {
+		ClusterARN    string `json:"com.amazonaws.ecs.cluster"`
+		ContainerName string `json:"com.amazonaws.ecs.container-name"`
+		TaskARN       string `json:"com.amazonaws.ecs.task-arn"`
+	} `json:"Labels"`
+	LogOptions struct {
+		Region    string `json:"awslogs-region"`
+		LogGroup  string `json:"awslogs-group"`
+		LogStream string `json:"awslogs-stream"`
+	} `json:"LogOptions"`
+}
+
+// AddECSTagsToSentryEvents Sets `Environment`, `ServerName` and adds `service`, `tenant` and `region` tags to Sentry events
+func AddECSTagsToSentryEvents(ctx context.Context, awsConfig aws.Config) error {
+	cluster := os.Getenv("ECS_CLUSTER")
+	ecsName := os.Getenv("FARGATE_TASK_NAME") // set by application
+	if ecsName == "" {
+		ecsName = os.Getenv("ECS_SERVICE_NAME") // set by ECS if task is launched as part of an ECS service
+	}
+
+	metadataEndpoint := os.Getenv("ECS_CONTAINER_METADATA_URI_V4")
+	if metadataEndpoint != "" {
+		resp, err := http.Get(metadataEndpoint)
+		if err != nil {
+			zap.L().Error("failed to get ECS metadata", zap.Error(err))
+			return err
+		}
+		defer func() {
+			if err := resp.Body.Close(); err != nil {
+				zap.L().Error("failed to close ECS metadata body", zap.Error(err))
+			}
+		}()
+
+		var metadata ecsMetadata
+		if err := json.NewDecoder(resp.Body).Decode(&metadata); err != nil {
+			zap.L().Error("failed to parse ECS metadata", zap.Error(err))
+		} else {
+			if ecsName == "" {
+				ecsName = metadata.Name
+			}
+			cluster = metadata.Labels.ClusterARN
+
+			if err = os.Setenv("AWS_ECS_LOG_GROUP_NAME", metadata.LogOptions.LogGroup); err != nil {
+				zap.L().Error("failed to set AWS_ECS_LOG_GROUP_NAME", zap.Error(err))
+			}
+			if err = os.Setenv("AWS_ECS_LOG_STREAM_NAME", metadata.LogOptions.LogStream); err != nil {
+				zap.L().Error("failed to set AWS_ECS_LOG_STREAM_NAME", zap.Error(err))
+			}
+		}
+	}
+
+	tags := map[string]string{}
+
+	if cluster == "" {
+		zap.L().Warn("ECS_CLUSTER is not set, will not be able to add cluster tags to sentry error events")
+	} else {
+		ecsClient := ecs.NewFromConfig(awsConfig)
+		clusterDetails, err := ecsClient.DescribeClusters(ctx, &ecs.DescribeClustersInput{
+			Clusters: []string{cluster},
+			Include:  []types.ClusterField{types.ClusterFieldTags},
+		})
+		if err != nil {
+			zap.L().Error("failed to get cluster details", zap.Error(err))
+		} else {
+			if len(clusterDetails.Clusters) == 0 {
+				zap.L().Warn("cluster not found", zap.String("clusterName", cluster))
+			} else {
+				for _, tag := range clusterDetails.Clusters[0].Tags {
+					tags[*tag.Key] = *tag.Value
+				}
+			}
+		}
+	}
+
+	err := os.Setenv("ECS_SERVICE_NAME", ecsName)
+	if err != nil {
+		zap.L().Error("failed to set ECS_SERVICE_NAME", zap.Error(err))
+	}
+
+	region := os.Getenv("AWS_REGION")
+	addTagsToSentryEvents(ecsName, region, tags)
+
+	return nil
+}
+
+func addTagsToSentryEvents(functionName string, region string, tags map[string]string) {
+	zap.L().Info("adding tags to sentry events", zap.String("functionName", functionName), zap.String("region", region), zap.Any("tags", tags))
+
 	// called by client.CaptureEvent() -> .processEvent() -> .prepareEvent()
 	sentry.CurrentHub().Client().AddEventProcessor(func(event *sentry.Event, _ *sentry.EventHint) *sentry.Event {
 		event.Environment = tags["Environment"]
 		event.ServerName = functionName
 
+		event.Tags["region"] = region
 		event.Tags["environment"] = tags["Environment"]
-		event.Tags["region"] = os.Getenv("AWS_REGION")
 		event.Tags["tenant"] = tags["Tenant"]
 		event.Tags["service"] = tags["Service"]
-		event.Tags["function"] = functionName
 
 		return event
 	})
