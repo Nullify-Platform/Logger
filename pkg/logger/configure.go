@@ -187,44 +187,30 @@ func AddLambdaTagsToSentryEvents(ctx context.Context, awsConfig aws.Config) erro
 }
 
 type ecsMetadata struct {
-	ContainerID string `json:"DockerId"`
+	DockerID string `json:"DockerId"`
+	Name     string `json:"Name"`
+	Labels   struct {
+		ClusterARN    string `json:"com.amazonaws.ecs.cluster"`
+		ContainerName string `json:"com.amazonaws.ecs.container-name"`
+		TaskARN       string `json:"com.amazonaws.ecs.task-arn"`
+	} `json:"Labels"`
+	LogOptions struct {
+		Region    string `json:"awslogs-region"`
+		LogGroup  string `json:"awslogs-group"`
+		LogStream string `json:"awslogs-stream"`
+	} `json:"LogOptions"`
 }
 
 // AddECSTagsToSentryEvents Sets `Environment`, `ServerName` and adds `service`, `tenant` and `region` tags to Sentry events
 func AddECSTagsToSentryEvents(ctx context.Context, awsConfig aws.Config) error {
-	ecsClient := ecs.NewFromConfig(awsConfig)
-
-	// the-sith defines FARGATE_TASK_NAME as `scacontainerfargate` etc which maps to `cmd` folders.
-	// this can't be relied on for all services. rebel-base defines
-	// OTEL_RESOURCE_ATTRIBUTES        = "deployment.environment=${var.environment}"
-	// OTEL_SERVICE_NAME               = "${var.deployment_id}-${var.service_name}"  the-sith, rebel-base
-	// might be able to get cluster tags: nib-prod-257856     - sca-fargate-cluster (or dast-fargate-cluster)
-	//                                    ${var.deployment_id}-{NOT service_name}
-	taskName := os.Getenv("FARGATE_TASK_NAME")
-	if taskName == "" {
-		taskName = os.Getenv("ECS_SERVICE_NAME")
-	}
-	zap.L().Info("ECS_SERVICE_NAME", zap.String("ECS_SERVICE_NAME", os.Getenv("ECS_SERVICE_NAME")))
-
-	region := os.Getenv("AWS_DEFAULT_REGION")
-	tags := map[string]string{}
-
-	tagStr := os.Getenv("ECS_CONTAINER_INSTANCE_TAGS")
-	if tagStr != "" {
-		err := json.Unmarshal([]byte(tagStr), &tags)
-		if err != nil {
-			zap.L().Error("failed to parse ECS container tags", zap.Error(err))
-		} else {
-			zap.L().Info("parsed ECS container tags from environment", zap.String("tagStr", tagStr), zap.Any("tags", tags))
-		}
+	cluster := os.Getenv("ECS_CLUSTER")
+	ecsName := os.Getenv("FARGATE_TASK_NAME") // set by application
+	if ecsName == "" {
+		ecsName = os.Getenv("ECS_SERVICE_NAME") // set by ECS if task is launched as part of an ECS service
 	}
 
 	metadataEndpoint := os.Getenv("ECS_CONTAINER_METADATA_URI_V4")
-	if metadataEndpoint == "" {
-		zap.L().Info("ECS_CONTAINER_METADATA_URI_V4 environment variable not set")
-	} else {
-		zap.L().Info("ECS_CONTAINER_METADATA_URI_V4 environment variable set", zap.String("metadataEndpoint", metadataEndpoint))
-
+	if metadataEndpoint != "" {
 		resp, err := http.Get(metadataEndpoint)
 		if err != nil {
 			zap.L().Error("failed to get ECS metadata", zap.Error(err))
@@ -236,66 +222,58 @@ func AddECSTagsToSentryEvents(ctx context.Context, awsConfig aws.Config) error {
 			}
 		}()
 
-		bodyBytes, err := io.ReadAll(resp.Body)
-		if err != nil {
-			zap.L().Error("failed to read ECS metadata body", zap.Error(err))
-		} else {
-			zap.L().Info("ECS metadata body", zap.String("body", string(bodyBytes)))
-		}
-
 		var metadata ecsMetadata
 		if err := json.NewDecoder(resp.Body).Decode(&metadata); err != nil {
 			zap.L().Error("failed to parse ECS metadata", zap.Error(err))
-		}
+		} else {
+			if ecsName == "" {
+				ecsName = metadata.Name
+			}
+			cluster = metadata.Labels.ClusterARN
 
-		zap.L().Info("got ECS metadata", zap.Any("metadata", metadata))
-		err = os.Setenv("AWS_LAMBDA_LOG_STREAM_NAME", "firelens/"+metadata.ContainerID)
-		if err != nil {
-			zap.L().Error("failed to set AWS_LAMBDA_LOG_STREAM_NAME", zap.Error(err))
+			if err = os.Setenv("AWS_ECS_LOG_GROUP_NAME", metadata.LogOptions.LogGroup); err != nil {
+				zap.L().Error("failed to set AWS_ECS_LOG_GROUP_NAME", zap.Error(err))
+			}
+			if err = os.Setenv("AWS_ECS_LOG_STREAM_NAME", metadata.LogOptions.LogStream); err != nil {
+				zap.L().Error("failed to set AWS_ECS_LOG_STREAM_NAME", zap.Error(err))
+			}
 		}
 	}
 
-	clusterName := os.Getenv("ECS_CLUSTER")
-	if clusterName == "" {
+	tags := map[string]string{}
+
+	if cluster == "" {
 		zap.L().Warn("ECS_CLUSTER is not set, will not be able to add cluster tags to sentry error events")
 	} else {
+		ecsClient := ecs.NewFromConfig(awsConfig)
 		clusterDetails, err := ecsClient.DescribeClusters(ctx, &ecs.DescribeClustersInput{
-			Clusters: []string{clusterName},
+			Clusters: []string{cluster},
 			Include:  []types.ClusterField{types.ClusterFieldTags},
 		})
 		if err != nil {
 			zap.L().Error("failed to get cluster details", zap.Error(err))
-			return err
-		}
-		if len(clusterDetails.Clusters) == 0 {
-			zap.L().Warn("cluster not found", zap.String("clusterName", clusterName))
 		} else {
-			// logStream := fmt.Sprintf("firelens/%s", clusterDetails.Clusters[0].ContainerName)
-
-			if clusterDetails.Clusters[0].Configuration != nil &&
-				clusterDetails.Clusters[0].Configuration.ExecuteCommandConfiguration != nil &&
-				clusterDetails.Clusters[0].Configuration.ExecuteCommandConfiguration.LogConfiguration != nil &&
-				clusterDetails.Clusters[0].Configuration.ExecuteCommandConfiguration.LogConfiguration.CloudWatchLogGroupName != nil {
-				zap.L().Info("got the log group name", zap.String("logGroupName", *clusterDetails.Clusters[0].Configuration.ExecuteCommandConfiguration.LogConfiguration.CloudWatchLogGroupName))
-				err = os.Setenv("AWS_LAMBDA_LOG_GROUP_NAME", *clusterDetails.Clusters[0].Configuration.ExecuteCommandConfiguration.LogConfiguration.CloudWatchLogGroupName)
-				if err != nil {
-					zap.L().Error("failed to set AWS_LAMBDA_LOG_GROUP_NAME", zap.Error(err))
+			if len(clusterDetails.Clusters) == 0 {
+				zap.L().Warn("cluster not found", zap.String("clusterName", cluster))
+			} else {
+				for _, tag := range clusterDetails.Clusters[0].Tags {
+					tags[*tag.Key] = *tag.Value
 				}
-			}
-
-			for _, tag := range clusterDetails.Clusters[0].Tags {
-				tags[*tag.Key] = *tag.Value
 			}
 		}
 	}
 
-	zap.L().Info("adding ECS tags to sentry events", zap.String("taskName", taskName), zap.String("region", region), zap.Any("tags", tags))
-	addTagsToSentryEvents(taskName, region, tags)
+	os.Setenv("ECS_SERVICE_NAME", ecsName)
+
+	region := os.Getenv("AWS_REGION")
+	addTagsToSentryEvents(ecsName, region, tags)
 
 	return nil
 }
 
 func addTagsToSentryEvents(functionName string, region string, tags map[string]string) {
+	zap.L().Info("adding tags to sentry events", zap.String("functionName", functionName), zap.String("region", region), zap.Any("tags", tags))
+
 	// called by client.CaptureEvent() -> .processEvent() -> .prepareEvent()
 	sentry.CurrentHub().Client().AddEventProcessor(func(event *sentry.Event, _ *sentry.EventHint) *sentry.Event {
 		event.Environment = tags["Environment"]

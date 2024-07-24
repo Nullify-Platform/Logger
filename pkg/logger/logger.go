@@ -152,11 +152,21 @@ func (l *logger) captureExceptions(fields []Field) {
 		sentry.WithScope(func(scope *sentry.Scope) {
 			if os.Getenv("AWS_LAMBDA_FUNCTION_NAME") != "" {
 				scope.SetContext("aws", map[string]interface{}{
-					"region":    region,
-					"lambda":    os.Getenv("AWS_LAMBDA_FUNCTION_NAME"),
-					"logGroup":  os.Getenv("AWS_LAMBDA_LOG_GROUP_NAME"),
-					"logStream": os.Getenv("AWS_LAMBDA_LOG_STREAM_NAME"),
-					"logsURL":   formatLogsURL(region, os.Getenv("AWS_LAMBDA_LOG_GROUP_NAME"), os.Getenv("AWS_LAMBDA_LOG_STREAM_NAME")),
+					"lambda": os.Getenv("AWS_LAMBDA_FUNCTION_NAME"),
+					"logsURL": formatLogsURL(
+						region,
+						os.Getenv("AWS_LAMBDA_LOG_GROUP_NAME"),
+						os.Getenv("AWS_LAMBDA_LOG_STREAM_NAME"),
+					),
+				})
+			} else if os.Getenv("ECS_SERVICE_NAME") != "" {
+				scope.SetContext("aws", map[string]interface{}{
+					"ecs": os.Getenv("ECS_SERVICE_NAME"),
+					"logsURL": formatLogsURL(
+						region,
+						os.Getenv("AWS_ECS_LOG_GROUP_NAME"),
+						os.Getenv("AWS_ECS_LOG_STREAM_NAME"),
+					),
 				})
 			}
 
