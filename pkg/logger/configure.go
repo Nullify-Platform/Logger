@@ -257,15 +257,7 @@ func AddECSTagsToSentryEvents(ctx context.Context, awsConfig aws.Config) error {
 		if len(clusterDetails.Clusters) == 0 {
 			zap.L().Warn("cluster not found", zap.String("clusterName", clusterName))
 		} else {
-			// if region == "" {
-			// 	// TODO: can probably remove this
-			// 	regionRexex := regexp.MustCompile(`^arn:aws:ecs:(.*):`)
-			// 	region = regionRexex.FindStringSubmatch(*clusterDetails.Clusters[0].ClusterArn)[1]
-			// 	os.Setenv("AWS_REGION", region)
-			// 	zap.L().Info("set AWS_REGION from cluster ARN", zap.String("region", region))
-			// }
-
-			// logStream := fmt.Sprintf("firelens/%s", clusterDetails.Clusters[0].ContainName)
+			// logStream := fmt.Sprintf("firelens/%s", clusterDetails.Clusters[0].ContainerName)
 
 			if clusterDetails.Clusters[0].Configuration != nil &&
 				clusterDetails.Clusters[0].Configuration.ExecuteCommandConfiguration != nil &&
