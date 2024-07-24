@@ -263,7 +263,10 @@ func AddECSTagsToSentryEvents(ctx context.Context, awsConfig aws.Config) error {
 		}
 	}
 
-	os.Setenv("ECS_SERVICE_NAME", ecsName)
+	err := os.Setenv("ECS_SERVICE_NAME", ecsName)
+	if err != nil {
+		zap.L().Error("failed to set ECS_SERVICE_NAME", zap.Error(err))
+	}
 
 	region := os.Getenv("AWS_REGION")
 	addTagsToSentryEvents(ecsName, region, tags)
