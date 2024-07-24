@@ -282,11 +282,10 @@ func addTagsToSentryEvents(functionName string, region string, tags map[string]s
 		event.Environment = tags["Environment"]
 		event.ServerName = functionName
 
-		event.Tags["environment"] = tags["Environment"]
 		event.Tags["region"] = region
+		event.Tags["environment"] = tags["Environment"]
 		event.Tags["tenant"] = tags["Tenant"]
 		event.Tags["service"] = tags["Service"]
-		event.Tags["function"] = functionName
 
 		return event
 	})
