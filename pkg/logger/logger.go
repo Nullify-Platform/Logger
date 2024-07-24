@@ -143,14 +143,19 @@ func (l *logger) captureExceptions(fields []Field) {
 		span := trace.SpanFromContext(l.attachedContext)
 		span.RecordError(err, trace.WithStackTrace(true))
 
+		region := os.Getenv("AWS_REGION")
+		if region == "" {
+			region = os.Getenv("AWS_DEFAULT_REGION")
+		}
+
 		// provide trace context to sentry
 		sentry.WithScope(func(scope *sentry.Scope) {
 			scope.SetContext("aws", map[string]interface{}{
-				"region":    os.Getenv("AWS_REGION"),
+				"region":    region,
 				"lambda":    os.Getenv("AWS_LAMBDA_FUNCTION_NAME"),
 				"logGroup":  os.Getenv("AWS_LAMBDA_LOG_GROUP_NAME"),
 				"logStream": os.Getenv("AWS_LAMBDA_LOG_STREAM_NAME"),
-				"logsURL":   formatLogsURL(os.Getenv("AWS_REGION"), os.Getenv("AWS_LAMBDA_LOG_GROUP_NAME"), os.Getenv("AWS_LAMBDA_LOG_STREAM_NAME")),
+				"logsURL":   formatLogsURL(region, os.Getenv("AWS_LAMBDA_LOG_GROUP_NAME"), os.Getenv("AWS_LAMBDA_LOG_STREAM_NAME")),
 			})
 			scope.SetContext("trace", map[string]interface{}{
 				"traceID": span.SpanContext().TraceID().String(),

@@ -35,7 +35,7 @@ func TestIntegrationCaptureException(t *testing.T) {
 	fixMechanismTypeInSentryEvents()
 
 	// add tags to the sentry events
-	addTagsToSentryEvents("logger_test.go", map[string]string{
+	addTagsToSentryEvents("logger_test.go", "test-region", map[string]string{
 		"Environment": "integration-test",
 		"Service":     "logger",
 		"Tenant":      "nullify-integration-test",
