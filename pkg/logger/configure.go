@@ -230,7 +230,11 @@ func AddECSTagsToSentryEvents(ctx context.Context, awsConfig aws.Config) error {
 			zap.L().Error("failed to get ECS metadata", zap.Error(err))
 			return err
 		}
-		defer resp.Body.Close()
+		defer func() {
+			if err := resp.Body.Close(); err != nil {
+				zap.L().Error("failed to close ECS metadata body", zap.Error(err))
+			}
+		}()
 
 		bodyBytes, err := io.ReadAll(resp.Body)
 		if err != nil {
