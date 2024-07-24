@@ -190,6 +190,7 @@ type ECSMetadata struct {
 	ContainerID string `json:"DockerId"`
 }
 
+// AddECSTagsToSentryEvents Sets `Environment`, `ServerName` and adds `service`, `tenant` and `region` tags to Sentry events
 func AddECSTagsToSentryEvents(ctx context.Context, awsConfig aws.Config) error {
 	ecsClient := ecs.NewFromConfig(awsConfig)
 
@@ -210,8 +211,12 @@ func AddECSTagsToSentryEvents(ctx context.Context, awsConfig aws.Config) error {
 
 	tagStr := os.Getenv("ECS_CONTAINER_INSTANCE_TAGS")
 	if tagStr != "" {
-		json.Unmarshal([]byte(tagStr), &tags)
-		zap.L().Info("parsed ECS container tags from environment", zap.String("tagStr", tagStr), zap.Any("tags", tags))
+		err := json.Unmarshal([]byte(tagStr), &tags)
+		if err != nil {
+			zap.L().Error("failed to parse ECS container tags", zap.Error(err))
+		} else {
+			zap.L().Info("parsed ECS container tags from environment", zap.String("tagStr", tagStr), zap.Any("tags", tags))
+		}
 	}
 
 	metadataEndpoint := os.Getenv("ECS_CONTAINER_METADATA_URI_V4")
@@ -239,7 +244,10 @@ func AddECSTagsToSentryEvents(ctx context.Context, awsConfig aws.Config) error {
 		}
 
 		zap.L().Info("got ECS metadata", zap.Any("metadata", metadata))
-		os.Setenv("AWS_LAMBDA_LOG_STREAM_NAME", "firelens/"+metadata.ContainerID)
+		err = os.Setenv("AWS_LAMBDA_LOG_STREAM_NAME", "firelens/"+metadata.ContainerID)
+		if err != nil {
+			zap.L().Error("failed to set AWS_LAMBDA_LOG_STREAM_NAME", zap.Error(err))
+		}
 	}
 
 	clusterName := os.Getenv("ECS_CLUSTER")
@@ -264,7 +272,10 @@ func AddECSTagsToSentryEvents(ctx context.Context, awsConfig aws.Config) error {
 				clusterDetails.Clusters[0].Configuration.ExecuteCommandConfiguration.LogConfiguration != nil &&
 				clusterDetails.Clusters[0].Configuration.ExecuteCommandConfiguration.LogConfiguration.CloudWatchLogGroupName != nil {
 				zap.L().Info("got the log group name", zap.String("logGroupName", *clusterDetails.Clusters[0].Configuration.ExecuteCommandConfiguration.LogConfiguration.CloudWatchLogGroupName))
-				os.Setenv("AWS_LAMBDA_LOG_GROUP_NAME", *clusterDetails.Clusters[0].Configuration.ExecuteCommandConfiguration.LogConfiguration.CloudWatchLogGroupName)
+				err = os.Setenv("AWS_LAMBDA_LOG_GROUP_NAME", *clusterDetails.Clusters[0].Configuration.ExecuteCommandConfiguration.LogConfiguration.CloudWatchLogGroupName)
+				if err != nil {
+					zap.L().Error("failed to set AWS_LAMBDA_LOG_GROUP_NAME", zap.Error(err))
+				}
 			}
 
 			for _, tag := range clusterDetails.Clusters[0].Tags {

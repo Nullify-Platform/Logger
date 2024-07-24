@@ -150,13 +150,16 @@ func (l *logger) captureExceptions(fields []Field) {
 
 		// provide trace context to sentry
 		sentry.WithScope(func(scope *sentry.Scope) {
-			scope.SetContext("aws", map[string]interface{}{
-				"region":    region,
-				"lambda":    os.Getenv("AWS_LAMBDA_FUNCTION_NAME"),
-				"logGroup":  os.Getenv("AWS_LAMBDA_LOG_GROUP_NAME"),
-				"logStream": os.Getenv("AWS_LAMBDA_LOG_STREAM_NAME"),
-				"logsURL":   formatLogsURL(region, os.Getenv("AWS_LAMBDA_LOG_GROUP_NAME"), os.Getenv("AWS_LAMBDA_LOG_STREAM_NAME")),
-			})
+			if os.Getenv("AWS_LAMBDA_FUNCTION_NAME") != "" {
+				scope.SetContext("aws", map[string]interface{}{
+					"region":    region,
+					"lambda":    os.Getenv("AWS_LAMBDA_FUNCTION_NAME"),
+					"logGroup":  os.Getenv("AWS_LAMBDA_LOG_GROUP_NAME"),
+					"logStream": os.Getenv("AWS_LAMBDA_LOG_STREAM_NAME"),
+					"logsURL":   formatLogsURL(region, os.Getenv("AWS_LAMBDA_LOG_GROUP_NAME"), os.Getenv("AWS_LAMBDA_LOG_STREAM_NAME")),
+				})
+			}
+			
 			scope.SetContext("trace", map[string]interface{}{
 				"traceID": span.SpanContext().TraceID().String(),
 				"spanID":  span.SpanContext().SpanID().String(),
