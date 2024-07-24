@@ -159,7 +159,7 @@ func (l *logger) captureExceptions(fields []Field) {
 					"logsURL":   formatLogsURL(region, os.Getenv("AWS_LAMBDA_LOG_GROUP_NAME"), os.Getenv("AWS_LAMBDA_LOG_STREAM_NAME")),
 				})
 			}
-			
+
 			scope.SetContext("trace", map[string]interface{}{
 				"traceID": span.SpanContext().TraceID().String(),
 				"spanID":  span.SpanContext().SpanID().String(),

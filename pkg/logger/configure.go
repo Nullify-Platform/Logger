@@ -186,7 +186,7 @@ func AddLambdaTagsToSentryEvents(ctx context.Context, awsConfig aws.Config) erro
 	return nil
 }
 
-type ECSMetadata struct {
+type ecsMetadata struct {
 	ContainerID string `json:"DockerId"`
 }
 
@@ -228,6 +228,7 @@ func AddECSTagsToSentryEvents(ctx context.Context, awsConfig aws.Config) error {
 		resp, err := http.Get(metadataEndpoint)
 		if err != nil {
 			zap.L().Error("failed to get ECS metadata", zap.Error(err))
+			return err
 		}
 		defer resp.Body.Close()
 
@@ -238,7 +239,7 @@ func AddECSTagsToSentryEvents(ctx context.Context, awsConfig aws.Config) error {
 			zap.L().Info("ECS metadata body", zap.String("body", string(bodyBytes)))
 		}
 
-		var metadata ECSMetadata
+		var metadata ecsMetadata
 		if err := json.NewDecoder(resp.Body).Decode(&metadata); err != nil {
 			zap.L().Error("failed to parse ECS metadata", zap.Error(err))
 		}
