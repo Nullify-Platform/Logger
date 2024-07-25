@@ -287,6 +287,10 @@ func addTagsToSentryEvents(functionName string, region string, tags map[string]s
 		event.Tags["tenant"] = tags["Tenant"]
 		event.Tags["service"] = tags["Service"]
 
+		os.Setenv("TAG_ENVIRONMENT", tags["Environment"])
+		os.Setenv("TAG_TENANT", tags["Tenant"])
+		os.Setenv("TAG_SERVICE", tags["Service"])
+
 		return event
 	})
 }
