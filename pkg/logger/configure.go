@@ -170,6 +170,10 @@ func initialiseSentry() {
 
 // AddLambdaTagsToSentryEvents Sets `Environment`, `ServerName` and adds `service`, `tenant` and `region` tags to Sentry events
 func AddLambdaTagsToSentryEvents(ctx context.Context, awsConfig aws.Config) error {
+	if os.Getenv("SENTRY_DSN") == "" {
+		return nil
+	}
+
 	lambdaClient := lambda.NewFromConfig(awsConfig)
 
 	functionName := os.Getenv("AWS_LAMBDA_FUNCTION_NAME")
@@ -203,6 +207,10 @@ type ecsMetadata struct {
 
 // AddECSTagsToSentryEvents Sets `Environment`, `ServerName` and adds `service`, `tenant` and `region` tags to Sentry events
 func AddECSTagsToSentryEvents(ctx context.Context, awsConfig aws.Config) error {
+	if os.Getenv("SENTRY_DSN") == "" {
+		return nil
+	}
+
 	cluster := os.Getenv("ECS_CLUSTER")
 	ecsName := os.Getenv("FARGATE_TASK_NAME") // set by application
 	if ecsName == "" {
