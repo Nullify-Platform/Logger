@@ -173,15 +173,17 @@ func AddLambdaTagsToSentryEvents(ctx context.Context, awsConfig aws.Config) erro
 	lambdaClient := lambda.NewFromConfig(awsConfig)
 
 	functionName := os.Getenv("AWS_LAMBDA_FUNCTION_NAME")
-	functionDetails, err := lambdaClient.GetFunction(ctx, &lambda.GetFunctionInput{
-		FunctionName: aws.String(functionName),
-	})
-	if err != nil {
-		zap.L().Error("failed to get lambda function details", zap.Error(err))
-		return err
-	}
+	if functionName != "" {
+		functionDetails, err := lambdaClient.GetFunction(ctx, &lambda.GetFunctionInput{
+			FunctionName: aws.String(functionName),
+		})
+		if err != nil {
+			zap.L().Error("failed to get lambda function details", zap.Error(err))
+			return err
+		}
 
-	addTagsToSentryEvents(functionName, os.Getenv("AWS_REGION"), functionDetails.Tags)
+		addTagsToSentryEvents(functionName, os.Getenv("AWS_REGION"), functionDetails.Tags)
+	}
 
 	return nil
 }
