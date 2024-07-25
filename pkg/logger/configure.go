@@ -277,6 +277,11 @@ func AddECSTagsToSentryEvents(ctx context.Context, awsConfig aws.Config) error {
 func addTagsToSentryEvents(functionName string, region string, tags map[string]string) {
 	zap.L().Info("adding tags to sentry events", zap.String("functionName", functionName), zap.String("region", region), zap.Any("tags", tags))
 
+	// export tags so that they can be used by python agents & other scripts
+	os.Setenv("TAG_ENVIRONMENT", tags["Environment"])
+	os.Setenv("TAG_TENANT", tags["Tenant"])
+	os.Setenv("TAG_SERVICE", tags["Service"])
+
 	// called by client.CaptureEvent() -> .processEvent() -> .prepareEvent()
 	sentry.CurrentHub().Client().AddEventProcessor(func(event *sentry.Event, _ *sentry.EventHint) *sentry.Event {
 		event.Environment = tags["Environment"]
@@ -286,10 +291,6 @@ func addTagsToSentryEvents(functionName string, region string, tags map[string]s
 		event.Tags["environment"] = tags["Environment"]
 		event.Tags["tenant"] = tags["Tenant"]
 		event.Tags["service"] = tags["Service"]
-
-		os.Setenv("TAG_ENVIRONMENT", tags["Environment"])
-		os.Setenv("TAG_TENANT", tags["Tenant"])
-		os.Setenv("TAG_SERVICE", tags["Service"])
 
 		return event
 	})
