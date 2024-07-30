@@ -17,6 +17,17 @@ func FromContext(ctx context.Context) trace.Tracer {
 	return t
 }
 
+// CopyFromContext copies a tracer from the old context to the new context
+func CopyFromContext(fromCtx context.Context, toCtx context.Context) context.Context {
+	t := fromCtx.Value(tracerCtxKey{})
+	tp := fromCtx.Value(traceProviderCtxKey{})
+
+	toCtx = context.WithValue(toCtx, tracerCtxKey{}, t)
+	toCtx = context.WithValue(toCtx, traceProviderCtxKey{}, tp)
+
+	return toCtx
+}
+
 // NewContext returns a new context with the given tracer
 func NewContext(parent context.Context, tp *otelsdk.TracerProvider, tracerName string) context.Context {
 	tracer := tp.Tracer(tracerName)
