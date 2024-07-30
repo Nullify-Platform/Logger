@@ -18,12 +18,12 @@ func FromContext(ctx context.Context) trace.Tracer {
 }
 
 // CopyFromContext copies a tracer from the old context to the new context
-func CopyFromContext(old context.Context, new context.Context) {
-	t := old.Value(tracerCtxKey{})
-	tp := old.Value(traceProviderCtxKey{})
+func CopyFromContext(fromCtx context.Context, toCtx context.Context) {
+	t := fromCtx.Value(tracerCtxKey{})
+	tp := fromCtx.Value(traceProviderCtxKey{})
 
-	new = context.WithValue(new, tracerCtxKey{}, t)
-	new = context.WithValue(new, traceProviderCtxKey{}, tp)
+	toCtx = context.WithValue(toCtx, tracerCtxKey{}, t)
+	toCtx = context.WithValue(toCtx, traceProviderCtxKey{}, tp)
 }
 
 // NewContext returns a new context with the given tracer
