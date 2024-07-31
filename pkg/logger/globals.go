@@ -33,3 +33,10 @@ func L(ctx context.Context) Logger {
 
 	return nil
 }
+
+// CopyFromContext copies the logger from the old context to the new context
+func CopyFromContext(fromCtx context.Context, toCtx context.Context) context.Context {
+	l := fromCtx.Value(loggerCtxKey{})
+
+	return context.WithValue(toCtx, loggerCtxKey{}, l)
+}
