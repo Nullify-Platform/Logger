@@ -178,6 +178,11 @@ func AddLambdaTagsToSentryEvents(ctx context.Context, awsConfig aws.Config) erro
 
 	functionName := os.Getenv("AWS_LAMBDA_FUNCTION_NAME")
 	if functionName != "" {
+		err := os.Setenv("OTEL_SERVICE_NAME", functionName)
+		if err != nil {
+			zap.L().Error("failed to set OTEL_SERVICE_NAME", zap.Error(err))
+		}
+
 		functionDetails, err := lambdaClient.GetFunction(ctx, &lambda.GetFunctionInput{
 			FunctionName: aws.String(functionName),
 		})
@@ -276,6 +281,10 @@ func AddECSTagsToSentryEvents(ctx context.Context, awsConfig aws.Config) error {
 	err := os.Setenv("ECS_SERVICE_NAME", ecsName)
 	if err != nil {
 		zap.L().Error("failed to set ECS_SERVICE_NAME", zap.Error(err))
+	}
+	err = os.Setenv("OTEL_SERVICE_NAME", ecsName)
+	if err != nil {
+		zap.L().Error("failed to set OTEL_SERVICE_NAME", zap.Error(err))
 	}
 
 	region := os.Getenv("AWS_REGION")
