@@ -295,7 +295,8 @@ func AddECSTagsToSentryEvents(ctx context.Context, awsConfig aws.Config) error {
 	return nil
 }
 
-func AddSentryTag(key, value string) {
+// AddSentryTag allows the application to add arbitrary tags for Sentry events at runtime
+func AddSentryTag(key string, value string) {
 	extraTags[key] = value
 }
 
