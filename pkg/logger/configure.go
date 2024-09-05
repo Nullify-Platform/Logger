@@ -33,6 +33,8 @@ import (
 // e.g. -ldflags "-X 'github.com/nullify-platform/logger/pkg/logger.Version=$(VERSION)'"
 var Version = "0.0.0"
 
+var extraTags = map[string]string{}
+
 // ConfigureDevelopmentLogger configures a development logger which is more human readable instead of JSON
 func ConfigureDevelopmentLogger(ctx context.Context, level string, syncs ...io.Writer) (context.Context, error) {
 	// configure level
@@ -293,6 +295,11 @@ func AddECSTagsToSentryEvents(ctx context.Context, awsConfig aws.Config) error {
 	return nil
 }
 
+// AddSentryTag allows the application to add arbitrary tags for Sentry events at runtime
+func AddSentryTag(key string, value string) {
+	extraTags[key] = value
+}
+
 func addTagsToSentryEvents(functionName string, region string, tags map[string]string) {
 	zap.L().Info("adding tags to sentry events", zap.String("functionName", functionName), zap.String("region", region), zap.Any("tags", tags))
 
@@ -316,6 +323,10 @@ func addTagsToSentryEvents(functionName string, region string, tags map[string]s
 		event.Tags["environment"] = tags["Environment"]
 		event.Tags["tenant"] = tags["Tenant"]
 		event.Tags["service"] = tags["Service"]
+
+		for k, v := range extraTags {
+			event.Tags[k] = v
+		}
 
 		return event
 	})
