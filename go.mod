@@ -42,8 +42,8 @@ require (
 	github.com/aws/aws-lambda-go v1.47.0
 	github.com/aws/aws-sdk-go-v2 v1.32.2
 	github.com/aws/aws-sdk-go-v2/config v1.28.0
-	github.com/aws/aws-sdk-go-v2/service/ecs v1.47.4
-	github.com/aws/aws-sdk-go-v2/service/lambda v1.63.2
+	github.com/aws/aws-sdk-go-v2/service/ecs v1.48.0
+	github.com/aws/aws-sdk-go-v2/service/lambda v1.64.0
 	github.com/aws/aws-sdk-go-v2/service/sns v1.33.2
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.36.2
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.55.2
