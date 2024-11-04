@@ -8,13 +8,21 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-type tracerCtxKey struct{}
-type traceProviderCtxKey struct{}
+type (
+	tracerCtxKey        struct{}
+	traceProviderCtxKey struct{}
+)
 
 // FromContext returns the tracer from the context
 func FromContext(ctx context.Context) trace.Tracer {
 	t, _ := ctx.Value(tracerCtxKey{}).(trace.Tracer)
 	return t
+}
+
+// StartNewRootSpan should be called at from API handlers to start a new root span for each request
+func StartNewRootSpan(ctx context.Context, spanName string) (context.Context, trace.Span) {
+	t := FromContext(ctx)
+	return t.Start(ctx, spanName, trace.WithNewRoot())
 }
 
 // CopyFromContext copies the tracer from the old context to the new context
