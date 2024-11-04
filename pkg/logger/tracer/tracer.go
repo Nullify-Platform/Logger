@@ -19,10 +19,25 @@ func FromContext(ctx context.Context) trace.Tracer {
 	return t
 }
 
-// StartNewRootSpan should be called at from API handlers to start a new root span for each request
-func StartNewRootSpan(ctx context.Context, spanName string) (context.Context, trace.Span) {
+// StartNewSpan loads the Tracer from the context and starts a new span.
+// opts can be used to provide additional options to t.Start():
+//   - trace.WithAttributes()
+//   - trace.WithSpanKind(trace.SpanKindServer)  or Internal/Client/Producer/Consumer
+//   - trace.WithLinks({SpanContext, Attributes})
+//   - trace.WithStackTrace(true)
+func StartNewSpan(ctx context.Context, spanName string, opts ...trace.SpanStartOption) (context.Context, trace.Span) {
 	t := FromContext(ctx)
-	return t.Start(ctx, spanName, trace.WithNewRoot())
+	return t.Start(ctx, spanName, opts...)
+}
+
+// StartNewRootSpan should be called at from API handlers to start a new root span for each request.
+// opts can be used to provide additional options to t.Start():
+//   - trace.WithAttributes()
+//   - trace.WithSpanKind(trace.SpanKindServer)  or Internal/Client/Producer/Consumer
+//   - trace.WithLinks({SpanContext, Attributes})
+//   - trace.WithStackTrace(true)
+func StartNewRootSpan(ctx context.Context, spanName string, opts ...trace.SpanStartOption) (context.Context, trace.Span) {
+	return StartNewSpan(ctx, spanName, append(opts, trace.WithNewRoot())...)
 }
 
 // CopyFromContext copies the tracer from the old context to the new context
