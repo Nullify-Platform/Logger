@@ -25,6 +25,6 @@ jobs:
         uses: golangci/golangci-lint-action@v6
         with:
           version: ${{ steps.extract_version.outputs.golangci_lint_version }}
-          args: ./cmd/... ./internal/... ./tests/...
+          args: ./cmd/... ./pkg/... ./tests/...
       - name: test
         run: make unit
