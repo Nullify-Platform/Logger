@@ -20,5 +20,15 @@ jobs:
         run: |
           go mod tidy
           git diff --exit-code
+      - name: Extract golangci-lint version
+        id: extract_version
+        run: |
+          version=$(sh scripts/get_golangci_lint_version.sh)
+          echo "::set-output name=golangci_lint_version::$version"
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: ${{ steps.extract_version.outputs.golangci_lint_version }}
+          args: ./cmd/... ./internal/... ./tests/...
       - name: test
         run: make unit

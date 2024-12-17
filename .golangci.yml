@@ -1,6 +1,7 @@
 run:
   timeout: 8m
-  skip-dirs:
+issues:
+  exclude-dirs:
     - data
 linters:
   disable-all: true
