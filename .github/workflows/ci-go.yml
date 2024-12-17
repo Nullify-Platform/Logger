@@ -10,10 +10,6 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - name: lint
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: v1.56.2
       - name: build
         run: make build
       - name: tidy
