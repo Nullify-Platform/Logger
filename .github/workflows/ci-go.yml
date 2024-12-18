@@ -10,15 +10,21 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - name: lint
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: v1.56.2
       - name: build
         run: make build
       - name: tidy
         run: |
           go mod tidy
           git diff --exit-code
+      - name: Extract golangci-lint version
+        id: extract_version
+        run: |
+          version=$(sh scripts/get_golangci_lint_version.sh)
+          echo "::set-output name=golangci_lint_version::$version"
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: ${{ steps.extract_version.outputs.golangci_lint_version }}
+          args: ./cmd/... ./pkg/... ./tests/...
       - name: test
         run: make unit
