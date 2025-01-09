@@ -3,6 +3,7 @@ package logger
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -109,6 +110,7 @@ func (l *logger) Warn(msg string, fields ...Field) {
 
 // Error logs a message with the error level
 func (l *logger) Error(msg string, fields ...Field) {
+	trace.SpanFromContext(l.attachedContext).RecordError(errors.New(msg))
 	trace.SpanFromContext(l.attachedContext).SetStatus(codes.Error, msg)
 	l.captureExceptions(fields)
 	l.underlyingLogger.Error(msg, fields...)
