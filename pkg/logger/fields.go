@@ -91,3 +91,104 @@ func Duration(key string, val time.Duration) Field {
 func Durations(key string, val []time.Duration) Field {
 	return zap.Durations(key, val)
 }
+
+// AgentFields represents agent-related logging fields
+type AgentFields struct {
+	Name   string
+	Status string
+}
+
+// RepositoryFields represents repository-related logging fields
+type RepositoryFields struct {
+	Name           string
+	Owner          *string
+	Platform       string
+	InstallationID string
+}
+
+type ServiceFields struct {
+	Name        string
+	ToolName    *string
+	ToolVersion *string
+	Category    *string
+}
+
+// ErrorType represents the type of error that occurred
+type ErrorType string
+
+const (
+	// Common error types
+	ErrorTypeUnknown    ErrorType = "unknown_error"
+	ErrorTypeValidation ErrorType = "validation_error"
+	ErrorTypeAgent      ErrorType = "agent_error"
+	ErrorTypeSystem     ErrorType = "system_error"
+	ErrorTypePostScan   ErrorType = "postscan_error"
+	ErrorTypePreScan    ErrorType = "prescan_error"
+	ErrorTypeScan       ErrorType = "scan_error"
+	ErrorTypeConfig     ErrorType = "config_error"
+	ErrorTypeNetwork    ErrorType = "network_error"
+	ErrorTypeTimeout    ErrorType = "timeout_error"
+)
+
+// ErrorFields represents error-related logging fields
+type ErrorFields struct {
+	Type      ErrorType
+	Message   string
+	Traceback *string // optional
+}
+
+// WithAgent adds agent-related fields to the log entry
+func WithAgent(agent AgentFields) Field {
+	return Any("agent", map[string]interface{}{
+		"name":   agent.Name,
+		"status": agent.Status,
+	})
+}
+
+// WithRepository adds repository-related fields to the log entry
+func WithRepository(repo RepositoryFields) Field {
+	fields := map[string]interface{}{
+		"name":            repo.Name,
+		"platform":        repo.Platform,
+		"installation_id": repo.InstallationID,
+	}
+
+	if repo.Owner != nil {
+		fields["owner"] = *repo.Owner
+	}
+
+	return Any("repository", fields)
+}
+
+// WithService adds service-related fields to the log entry
+func WithService(service ServiceFields) Field {
+	fields := map[string]interface{}{
+		"name": service.Name,
+	}
+
+	if service.ToolName != nil {
+		fields["tool_name"] = *service.ToolName
+	}
+	if service.ToolVersion != nil {
+		fields["tool_version"] = *service.ToolVersion
+	}
+	if service.Category != nil {
+		fields["category"] = *service.Category
+	}
+
+	return Any("service", fields)
+}
+
+// WithErrorInfo adds error-related fields to the log entry
+func WithErrorInfo(errFields ErrorFields) []Field {
+	fields := []Field{
+		String("error.type", string(errFields.Type)),
+		String("error.message", errFields.Message),
+	}
+
+	if errFields.Traceback != nil {
+		fields = append(fields, String("error.traceback", *errFields.Traceback))
+	}
+
+	return fields
+}
