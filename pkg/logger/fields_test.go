@@ -1,40 +1,11 @@
 package logger
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap/zapcore"
 )
-
-// helper function to convert Field to map for easier assertions
-func fieldToMap(t *testing.T, field Field) map[string]interface{} {
-	enc := zapcore.NewMapObjectEncoder()
-	field.AddTo(enc)
-
-	// Get the value and convert it to map
-	raw := enc.Fields["agent"]
-	if raw == nil {
-		raw = enc.Fields["service"]
-	}
-	if raw == nil {
-		raw = enc.Fields["repository"]
-	}
-	if raw == nil {
-		return enc.Fields // for error fields
-	}
-
-	// Convert to JSON and back to ensure proper mapping
-	jsonBytes, err := json.Marshal(raw)
-	assert.NoError(t, err)
-
-	var result map[string]interface{}
-	err = json.Unmarshal(jsonBytes, &result)
-	assert.NoError(t, err)
-
-	return result
-}
 
 func TestLogFields(t *testing.T) {
 	tests := []struct {
