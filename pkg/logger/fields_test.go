@@ -36,139 +36,95 @@ func fieldToMap(t *testing.T, field Field) map[string]interface{} {
 	return result
 }
 
-func TestWithAgent(t *testing.T) {
+func TestLogFields(t *testing.T) {
 	tests := []struct {
 		name     string
-		input    AgentFields
+		builder  func() []Field
 		expected map[string]interface{}
 	}{
 		{
-			name: "all fields",
-			input: AgentFields{
-				Name:   "test-agent",
-				Status: "running",
+			name: "agent fields",
+			builder: func() []Field {
+				return NewLogFields().
+					WithAgent("test-agent", "running").
+					Build()
 			},
 			expected: map[string]interface{}{
-				"name":   "test-agent",
-				"status": "running",
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			field := WithAgent(tt.input)
-			result := fieldToMap(t, field)
-			assert.Equal(t, tt.expected, result)
-		})
-	}
-}
-
-func TestWithService(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    ServiceFields
-		expected map[string]interface{}
-	}{
-		{
-			name: "required fields only",
-			input: ServiceFields{
-				Name: "test-service",
-			},
-			expected: map[string]interface{}{
-				"name": "test-service",
+				"agent": map[string]interface{}{
+					"name":   "test-agent",
+					"status": "running",
+				},
 			},
 		},
 		{
-			name: "all fields",
-			input: *(&ServiceFields{
-				Name: "test-service",
-			}).WithToolName("test-tool").
-				WithToolVersion("1.0.0").
-				WithCategory("test-category"),
+			name: "service with required fields only",
+			builder: func() []Field {
+				return NewLogFields().
+					WithService("test-service").
+					Build()
+			},
 			expected: map[string]interface{}{
-				"name":         "test-service",
-				"tool_name":    "test-tool",
-				"tool_version": "1.0.0",
-				"category":     "test-category",
+				"service": map[string]interface{}{
+					"name": "test-service",
+				},
 			},
 		},
 		{
-			name: "partial optional fields",
-			input: *(&ServiceFields{
-				Name: "test-service",
-			}).WithToolName("test-tool"),
-			expected: map[string]interface{}{
-				"name":      "test-service",
-				"tool_name": "test-tool",
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			field := WithService(tt.input)
-			result := fieldToMap(t, field)
-			assert.Equal(t, tt.expected, result)
-		})
-	}
-}
-
-func TestWithRepository(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    RepositoryFields
-		expected map[string]interface{}
-	}{
-		{
-			name: "required fields only",
-			input: RepositoryFields{
-				Name:           "test-repo",
-				Platform:       "github",
-				InstallationID: "12345",
+			name: "service with all fields",
+			builder: func() []Field {
+				return NewLogFields().
+					WithService("test-service").
+					WithServiceTool("test-tool", "1.0.0").
+					WithServiceCategory("test-category").
+					Build()
 			},
 			expected: map[string]interface{}{
-				"name":            "test-repo",
-				"platform":        "github",
-				"installation_id": "12345",
+				"service": map[string]interface{}{
+					"name":         "test-service",
+					"tool_name":    "test-tool",
+					"tool_version": "1.0.0",
+					"category":     "test-category",
+				},
 			},
 		},
 		{
-			name: "with optional owner",
-			input: *(&RepositoryFields{
-				Name:           "test-repo",
-				Platform:       "github",
-				InstallationID: "12345",
-			}).WithOwner("test-owner"),
+			name: "repository with required fields only",
+			builder: func() []Field {
+				return NewLogFields().
+					WithRepository("test-repo", "github", "12345").
+					Build()
+			},
 			expected: map[string]interface{}{
-				"name":            "test-repo",
-				"platform":        "github",
-				"installation_id": "12345",
-				"owner":           "test-owner",
+				"repository": map[string]interface{}{
+					"name":            "test-repo",
+					"platform":        "github",
+					"installation_id": "12345",
+				},
 			},
 		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			field := WithRepository(tt.input)
-			result := fieldToMap(t, field)
-			assert.Equal(t, tt.expected, result)
-		})
-	}
-}
-
-func TestWithErrorInfo(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    ErrorFields
-		expected map[string]interface{}
-	}{
 		{
-			name: "required fields only",
-			input: ErrorFields{
-				Type:    ErrorTypeAgent,
-				Message: "test error",
+			name: "repository with owner",
+			builder: func() []Field {
+				return NewLogFields().
+					WithRepository("test-repo", "github", "12345").
+					WithRepositoryOwner("test-owner").
+					Build()
+			},
+			expected: map[string]interface{}{
+				"repository": map[string]interface{}{
+					"name":            "test-repo",
+					"platform":        "github",
+					"installation_id": "12345",
+					"owner":           "test-owner",
+				},
+			},
+		},
+		{
+			name: "error with required fields only",
+			builder: func() []Field {
+				return NewLogFields().
+					WithError(ErrorTypeAgent, "test error").
+					Build()
 			},
 			expected: map[string]interface{}{
 				"error.type":    "agent_error",
@@ -176,12 +132,50 @@ func TestWithErrorInfo(t *testing.T) {
 			},
 		},
 		{
-			name: "all fields",
-			input: *(&ErrorFields{
-				Type:    ErrorTypeAgent,
-				Message: "test error",
-			}).WithTraceback("test traceback"),
+			name: "error with traceback",
+			builder: func() []Field {
+				return NewLogFields().
+					WithError(ErrorTypeAgent, "test error").
+					WithErrorTraceback("test traceback").
+					Build()
+			},
 			expected: map[string]interface{}{
+				"error.type":      "agent_error",
+				"error.message":   "test error",
+				"error.traceback": "test traceback",
+			},
+		},
+		{
+			name: "all fields together",
+			builder: func() []Field {
+				return NewLogFields().
+					WithAgent("test-agent", "failed").
+					WithService("test-service").
+					WithServiceTool("test-tool", "1.0.0").
+					WithServiceCategory("test-category").
+					WithRepository("test-repo", "github", "12345").
+					WithRepositoryOwner("test-owner").
+					WithError(ErrorTypeAgent, "test error").
+					WithErrorTraceback("test traceback").
+					Build()
+			},
+			expected: map[string]interface{}{
+				"agent": map[string]interface{}{
+					"name":   "test-agent",
+					"status": "failed",
+				},
+				"service": map[string]interface{}{
+					"name":         "test-service",
+					"tool_name":    "test-tool",
+					"tool_version": "1.0.0",
+					"category":     "test-category",
+				},
+				"repository": map[string]interface{}{
+					"name":            "test-repo",
+					"platform":        "github",
+					"installation_id": "12345",
+					"owner":           "test-owner",
+				},
 				"error.type":      "agent_error",
 				"error.message":   "test error",
 				"error.traceback": "test traceback",
@@ -191,7 +185,7 @@ func TestWithErrorInfo(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			fields := WithErrorInfo(tt.input)
+			fields := tt.builder()
 			enc := zapcore.NewMapObjectEncoder()
 			for _, f := range fields {
 				f.AddTo(enc)

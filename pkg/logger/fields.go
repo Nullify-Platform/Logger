@@ -107,13 +107,6 @@ type RepositoryFields struct {
 	ownerSet       bool   // internal tracking
 }
 
-// WithOwner sets the optional owner field
-func (r *RepositoryFields) WithOwner(owner string) *RepositoryFields {
-	r.Owner = owner
-	r.ownerSet = true
-	return r
-}
-
 // ServiceFields represents service-related logging fields
 type ServiceFields struct {
 	Name           string
@@ -123,27 +116,6 @@ type ServiceFields struct {
 	toolNameSet    bool   // internal tracking
 	toolVersionSet bool
 	categorySet    bool
-}
-
-// WithToolName sets the optional tool name field
-func (s *ServiceFields) WithToolName(name string) *ServiceFields {
-	s.ToolName = name
-	s.toolNameSet = true
-	return s
-}
-
-// WithToolVersion sets the optional tool version field
-func (s *ServiceFields) WithToolVersion(version string) *ServiceFields {
-	s.ToolVersion = version
-	s.toolVersionSet = true
-	return s
-}
-
-// WithCategory sets the optional category field
-func (s *ServiceFields) WithCategory(category string) *ServiceFields {
-	s.Category = category
-	s.categorySet = true
-	return s
 }
 
 // ErrorType represents the type of error that occurred
@@ -169,13 +141,6 @@ type ErrorFields struct {
 	Message      string
 	Traceback    string // optional
 	tracebackSet bool
-}
-
-// WithTraceback sets the optional traceback field
-func (e *ErrorFields) WithTraceback(traceback string) *ErrorFields {
-	e.Traceback = traceback
-	e.tracebackSet = true
-	return e
 }
 
 // WithAgent adds agent-related fields to the log entry
@@ -229,6 +194,120 @@ func WithErrorInfo(errFields ErrorFields) []Field {
 
 	if errFields.tracebackSet {
 		fields = append(fields, String("error.traceback", errFields.Traceback))
+	}
+
+	return fields
+}
+
+// LogFields represents all logging-related fields
+type LogFields struct {
+	Agent      *AgentFields
+	Repository *RepositoryFields
+	Service    *ServiceFields
+	Error      *ErrorFields
+}
+
+// NewLogFields creates a new LogFields instance
+func NewLogFields() *LogFields {
+	return &LogFields{}
+}
+
+// WithAgent adds agent-related fields
+func (l *LogFields) WithAgent(name, status string) *LogFields {
+	l.Agent = &AgentFields{
+		Name:   name,
+		Status: status,
+	}
+	return l
+}
+
+// WithRepository adds required repository fields
+func (l *LogFields) WithRepository(name, platform, installationID string) *LogFields {
+	l.Repository = &RepositoryFields{
+		Name:           name,
+		Platform:       platform,
+		InstallationID: installationID,
+	}
+	return l
+}
+
+// WithRepositoryOwner adds optional repository owner
+func (l *LogFields) WithRepositoryOwner(owner string) *LogFields {
+	if l.Repository == nil {
+		l.Repository = &RepositoryFields{}
+	}
+	l.Repository.Owner = owner
+	l.Repository.ownerSet = true
+	return l
+}
+
+// WithService adds required service fields
+func (l *LogFields) WithService(name string) *LogFields {
+	l.Service = &ServiceFields{
+		Name: name,
+	}
+	return l
+}
+
+// WithServiceTool adds optional service tool details
+func (l *LogFields) WithServiceTool(name, version string) *LogFields {
+	if l.Service == nil {
+		l.Service = &ServiceFields{}
+	}
+	l.Service.ToolName = name
+	l.Service.ToolVersion = version
+	l.Service.toolNameSet = true
+	l.Service.toolVersionSet = true
+	return l
+}
+
+// WithServiceCategory adds optional service category
+func (l *LogFields) WithServiceCategory(category string) *LogFields {
+	if l.Service == nil {
+		l.Service = &ServiceFields{}
+	}
+	l.Service.Category = category
+	l.Service.categorySet = true
+	return l
+}
+
+// WithError adds error fields
+func (l *LogFields) WithError(errType ErrorType, message string) *LogFields {
+	l.Error = &ErrorFields{
+		Type:    errType,
+		Message: message,
+	}
+	return l
+}
+
+// WithErrorTraceback adds optional error traceback
+func (l *LogFields) WithErrorTraceback(traceback string) *LogFields {
+	if l.Error == nil {
+		l.Error = &ErrorFields{}
+	}
+	l.Error.Traceback = traceback
+	l.Error.tracebackSet = true
+	return l
+}
+
+// Build creates all the fields based on what was set
+func (l *LogFields) Build() []Field {
+	var fields []Field
+
+	if l.Agent != nil {
+		fields = append(fields, WithAgent(*l.Agent))
+	}
+
+	if l.Repository != nil {
+		fields = append(fields, WithRepository(*l.Repository))
+	}
+
+	if l.Service != nil {
+		fields = append(fields, WithService(*l.Service))
+	}
+
+	if l.Error != nil {
+		fields = append(fields, WithErrorInfo(*l.Error)...)
 	}
 
 	return fields
