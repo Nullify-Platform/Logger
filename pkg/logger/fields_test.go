@@ -65,10 +65,6 @@ func TestWithAgent(t *testing.T) {
 }
 
 func TestWithService(t *testing.T) {
-	toolName := "test-tool"
-	toolVersion := "1.0.0"
-	category := "test-category"
-
 	tests := []struct {
 		name     string
 		input    ServiceFields
@@ -85,12 +81,11 @@ func TestWithService(t *testing.T) {
 		},
 		{
 			name: "all fields",
-			input: ServiceFields{
-				Name:        "test-service",
-				ToolName:    &toolName,
-				ToolVersion: &toolVersion,
-				Category:    &category,
-			},
+			input: *(&ServiceFields{
+				Name: "test-service",
+			}).WithToolName("test-tool").
+				WithToolVersion("1.0.0").
+				WithCategory("test-category"),
 			expected: map[string]interface{}{
 				"name":         "test-service",
 				"tool_name":    "test-tool",
@@ -100,10 +95,9 @@ func TestWithService(t *testing.T) {
 		},
 		{
 			name: "partial optional fields",
-			input: ServiceFields{
-				Name:     "test-service",
-				ToolName: &toolName,
-			},
+			input: *(&ServiceFields{
+				Name: "test-service",
+			}).WithToolName("test-tool"),
 			expected: map[string]interface{}{
 				"name":      "test-service",
 				"tool_name": "test-tool",
@@ -121,8 +115,6 @@ func TestWithService(t *testing.T) {
 }
 
 func TestWithRepository(t *testing.T) {
-	owner := "test-owner"
-
 	tests := []struct {
 		name     string
 		input    RepositoryFields
@@ -142,18 +134,17 @@ func TestWithRepository(t *testing.T) {
 			},
 		},
 		{
-			name: "all fields",
-			input: RepositoryFields{
+			name: "with optional owner",
+			input: *(&RepositoryFields{
 				Name:           "test-repo",
-				Owner:          &owner,
 				Platform:       "github",
 				InstallationID: "12345",
-			},
+			}).WithOwner("test-owner"),
 			expected: map[string]interface{}{
 				"name":            "test-repo",
-				"owner":           "test-owner",
 				"platform":        "github",
 				"installation_id": "12345",
+				"owner":           "test-owner",
 			},
 		},
 	}
@@ -168,8 +159,6 @@ func TestWithRepository(t *testing.T) {
 }
 
 func TestWithErrorInfo(t *testing.T) {
-	traceback := "test traceback"
-
 	tests := []struct {
 		name     string
 		input    ErrorFields
@@ -188,11 +177,10 @@ func TestWithErrorInfo(t *testing.T) {
 		},
 		{
 			name: "all fields",
-			input: ErrorFields{
-				Type:      ErrorTypeAgent,
-				Message:   "test error",
-				Traceback: &traceback,
-			},
+			input: *(&ErrorFields{
+				Type:    ErrorTypeAgent,
+				Message: "test error",
+			}).WithTraceback("test traceback"),
 			expected: map[string]interface{}{
 				"error.type":      "agent_error",
 				"error.message":   "test error",

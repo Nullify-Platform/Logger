@@ -101,16 +101,49 @@ type AgentFields struct {
 // RepositoryFields represents repository-related logging fields
 type RepositoryFields struct {
 	Name           string
-	Owner          *string
 	Platform       string
 	InstallationID string
+	Owner          string // optional
+	ownerSet       bool   // internal tracking
 }
 
+// WithOwner sets the optional owner field
+func (r *RepositoryFields) WithOwner(owner string) *RepositoryFields {
+	r.Owner = owner
+	r.ownerSet = true
+	return r
+}
+
+// ServiceFields represents service-related logging fields
 type ServiceFields struct {
-	Name        string
-	ToolName    *string
-	ToolVersion *string
-	Category    *string
+	Name           string
+	ToolName       string // optional
+	ToolVersion    string // optional
+	Category       string // optional
+	toolNameSet    bool   // internal tracking
+	toolVersionSet bool
+	categorySet    bool
+}
+
+// WithToolName sets the optional tool name field
+func (s *ServiceFields) WithToolName(name string) *ServiceFields {
+	s.ToolName = name
+	s.toolNameSet = true
+	return s
+}
+
+// WithToolVersion sets the optional tool version field
+func (s *ServiceFields) WithToolVersion(version string) *ServiceFields {
+	s.ToolVersion = version
+	s.toolVersionSet = true
+	return s
+}
+
+// WithCategory sets the optional category field
+func (s *ServiceFields) WithCategory(category string) *ServiceFields {
+	s.Category = category
+	s.categorySet = true
+	return s
 }
 
 // ErrorType represents the type of error that occurred
@@ -132,9 +165,17 @@ const (
 
 // ErrorFields represents error-related logging fields
 type ErrorFields struct {
-	Type      ErrorType
-	Message   string
-	Traceback *string // optional
+	Type         ErrorType
+	Message      string
+	Traceback    string // optional
+	tracebackSet bool
+}
+
+// WithTraceback sets the optional traceback field
+func (e *ErrorFields) WithTraceback(traceback string) *ErrorFields {
+	e.Traceback = traceback
+	e.tracebackSet = true
+	return e
 }
 
 // WithAgent adds agent-related fields to the log entry
@@ -153,8 +194,8 @@ func WithRepository(repo RepositoryFields) Field {
 		"installation_id": repo.InstallationID,
 	}
 
-	if repo.Owner != nil {
-		fields["owner"] = *repo.Owner
+	if repo.ownerSet {
+		fields["owner"] = repo.Owner
 	}
 
 	return Any("repository", fields)
@@ -166,14 +207,14 @@ func WithService(service ServiceFields) Field {
 		"name": service.Name,
 	}
 
-	if service.ToolName != nil {
-		fields["tool_name"] = *service.ToolName
+	if service.toolNameSet {
+		fields["tool_name"] = service.ToolName
 	}
-	if service.ToolVersion != nil {
-		fields["tool_version"] = *service.ToolVersion
+	if service.toolVersionSet {
+		fields["tool_version"] = service.ToolVersion
 	}
-	if service.Category != nil {
-		fields["category"] = *service.Category
+	if service.categorySet {
+		fields["category"] = service.Category
 	}
 
 	return Any("service", fields)
@@ -186,8 +227,8 @@ func WithErrorInfo(errFields ErrorFields) []Field {
 		String("error.message", errFields.Message),
 	}
 
-	if errFields.Traceback != nil {
-		fields = append(fields, String("error.traceback", *errFields.Traceback))
+	if errFields.tracebackSet {
+		fields = append(fields, String("error.traceback", errFields.Traceback))
 	}
 
 	return fields
