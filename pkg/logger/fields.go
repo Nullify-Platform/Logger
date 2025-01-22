@@ -94,8 +94,10 @@ func Durations(key string, val []time.Duration) Field {
 
 // AgentFields represents agent-related logging fields
 type AgentFields struct {
-	Name   string
-	Status string
+	Name       string
+	Status     string
+	TraceID    string
+	traceIDSet bool
 }
 
 // RepositoryFields represents repository-related logging fields
@@ -145,10 +147,23 @@ type ErrorFields struct {
 
 // WithAgent adds agent-related fields to the log entry
 func WithAgent(agent AgentFields) Field {
-	return Any("agent", map[string]interface{}{
+	fields := map[string]interface{}{
 		"name":   agent.Name,
 		"status": agent.Status,
-	})
+	}
+
+	if agent.traceIDSet {
+		fields["trace_id"] = agent.TraceID
+	}
+
+	return Any("agent", fields)
+}
+
+// Add this method to AgentFields
+func (a *AgentFields) WithTraceID(traceID string) *AgentFields {
+	a.TraceID = traceID
+	a.traceIDSet = true
+	return a
 }
 
 // WithRepository adds repository-related fields to the log entry
@@ -218,6 +233,15 @@ func (l *LogFields) WithAgent(name, status string) *LogFields {
 		Name:   name,
 		Status: status,
 	}
+	return l
+}
+
+// Add this method
+func (l *LogFields) WithAgentTraceID(traceID string) *LogFields {
+	if l.Agent == nil {
+		l.Agent = &AgentFields{}
+	}
+	l.Agent.WithTraceID(traceID)
 	return l
 }
 
