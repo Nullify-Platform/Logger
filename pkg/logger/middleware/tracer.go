@@ -5,17 +5,14 @@ import (
 	"net/http"
 
 	"github.com/nullify-platform/logger/pkg/logger/tracer"
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/propagation"
 )
 
 func TracerMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		carrier := propagation.HeaderCarrier(r.Header)
-		ctx = otel.GetTextMapPropagator().Extract(ctx, carrier)
+		tracer.ExtractTracingFromHTTPHeaders(ctx, r.Header)
 
 		ctx, span := tracer.FromContext(ctx).Start(ctx, fmt.Sprintf("http call: %s %s", r.Method, r.URL.EscapedPath()))
 		defer tracer.ForceFlush(ctx)
