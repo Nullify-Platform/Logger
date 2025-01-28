@@ -22,7 +22,7 @@ func TestCustomAttributeCarrier(t *testing.T) {
 		"traceparent": "00-adabf450d7a37f3a7b708aaaffffe150-95f2f55992ea2f1e-01",
 	}
 
-	ctx = tc.Extract(ctx, newCustomEventMessageCarrier(extractAttributes))
+	ctx = tc.Extract(ctx, newCustomMessageCarrier(extractAttributes))
 	ctx, span := FromContext(ctx).Start(ctx, "TestCustomAttributeCarrier")
 
 	assert.Equal(t, "adabf450d7a37f3a7b708aaaffffe150", span.SpanContext().TraceID().String())
