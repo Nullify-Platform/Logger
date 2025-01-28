@@ -12,7 +12,7 @@ func TracerMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		tracer.ExtractTracingFromHTTPHeaders(ctx, r.Header)
+		ctx = tracer.ExtractTracingFromHTTPHeaders(ctx, r.Header)
 
 		ctx, span := tracer.FromContext(ctx).Start(ctx, fmt.Sprintf("http call: %s %s", r.Method, r.URL.EscapedPath()))
 		defer tracer.ForceFlush(ctx)
