@@ -13,10 +13,6 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-type nullifyContextKeyType string
-
-const nullifyContextKey nullifyContextKeyType = "NullifyContext"
-
 type LogConfig struct {
 	Repository *repository
 	Service    *service
