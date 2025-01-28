@@ -2,7 +2,6 @@
 package middleware
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 	"runtime/debug"
@@ -11,9 +10,6 @@ import (
 
 	"github.com/getsentry/sentry-go"
 	"github.com/nullify-platform/logger/pkg/logger"
-	"github.com/nullify-platform/logger/pkg/logger/tracer"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/trace"
 )
 
 type responseWriter struct {
@@ -48,14 +44,7 @@ type httpRequestMetadata struct {
 // LoggingMiddleware logs the incoming request and the outgoing response and adds relevant tracing information
 func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx, span := tracer.FromContext(r.Context()).Start(r.Context(), fmt.Sprint("http call", r.URL.EscapedPath()))
-		defer func() {
-			// check if there is a parent span
-			if parentSpan := trace.SpanFromContext(ctx); !parentSpan.SpanContext().IsValid() {
-				logger.L(ctx).Sync()
-			}
-		}()
-		defer span.End()
+		ctx := r.Context()
 
 		defer func() {
 			if err := recover(); err != nil {
@@ -92,14 +81,6 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 			RequestHeaders: reqHeaders,
 		}
 
-		span.SetAttributes(
-			attribute.String("http.method", r.Method),
-			attribute.String("http.host", r.Host),
-			attribute.String("http.Path", r.URL.EscapedPath()),
-			attribute.String("http.Query", r.URL.Query().Encode()),
-			attribute.StringSlice("http.RequestHeaders", reqHeaders),
-		)
-
 		if r.URL.EscapedPath() != "/healthcheck" {
 			logger.L(ctx).Info(
 				"new request",
@@ -107,11 +88,9 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 			)
 		}
 
-		span.AddEvent("delegating request")
 		start := time.Now()
 		rw := &responseWriter{ResponseWriter: w}
 		next.ServeHTTP(rw, r.WithContext(ctx))
-		span.AddEvent("request completed")
 
 		resHeaders := []string{}
 		for header, values := range rw.Header() {
@@ -123,7 +102,6 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 		metadata.StatusCode = rw.StatusCode
 		metadata.ResponseHeaders = resHeaders
 		metadata.Duration = time.Since(start)
-		span.AddEvent("response parsing complete")
 
 		if r.URL.EscapedPath() != "/healthcheck" {
 			logger.L(ctx).Info(
