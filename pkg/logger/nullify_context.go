@@ -5,9 +5,6 @@ import (
 
 	"reflect"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/nullify-platform/logger/pkg/logger/tracer"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
@@ -18,97 +15,38 @@ type nullifyContextKeyType string
 
 const nullifyContextKey nullifyContextKeyType = "NullifyContext"
 
-// NullifyContext holds a mutable tree of BotActions and other useful data
-type NullifyContext struct {
-	AWSConfig aws.Config
-	Span      trace.Span
-	LogConfig *LogConfig // Changed to pointer to make it optional
-}
-
 type LogConfig struct {
-	Repository *Repository
-	Service    *Service
-	Tool       *Tool
+	Repository *repository
+	Service    *service
+	Tool       *tool
 }
 
-type Repository struct {
+type repository struct {
 	Name           *string `json:"repository_name"`
 	Owner          *string `json:"repository_owner"`
-	Platform       *string `json:"repository_platform"`
+	Platform       *string `json:"platform"`
 	ID             *string `json:"repository_id"`
-	CommitID       *string `json:"repository_commit_id"` //head commit id
-	PRNumber       *string `json:"repository_pr_number"`
-	Component      *string `json:"repository_component"`
-	BranchID       *string `json:"repository_branch_id"`
-	BranchName     *string `json:"repository_branch_name"`
-	InstallationID *string `json:"repository_installation_id"`
-	AppID          *string `json:"repository_app_id"`
-	Action         *string `json:"repository_action"`
-	ProjectID      *string `json:"repository_project_id"`
-	OrganizationID *string `json:"repository_organization_id"`
+	CommitID       *string `json:"commit_id"` //head commit id
+	PRNumber       *string `json:"pr_number"`
+	Component      *string `json:"component"`
+	BranchID       *string `json:"branch_id"`
+	BranchName     *string `json:"branch_name"`
+	InstallationID *string `json:"installation_id"`
+	AppID          *string `json:"app_id"`
+	Action         *string `json:"action"`
+	ProjectID      *string `json:"project_id"`
+	OrganizationID *string `json:"organization_id"`
 }
 
-type Service struct {
+type service struct {
 	Name            *string `json:"service_name"`
 	ServiceCategory *string `json:"service_category"`
 	Event           *string `json:"service_event"`
 }
 
-type Tool struct {
+type tool struct {
 	Name   *string `json:"tool_name"`
 	Status *string `json:"tool_status"`
-}
-
-// NewNullifyContext should be called at the entrypoint of a new request to initialize the NullifyContext.
-// it creates a new OpenTelemetry span and initialises the NullifyContext.
-func NewNullifyContext(ctx context.Context, spanName string) (context.Context, trace.Span) {
-	ctx, span := tracer.StartNewRootSpan(ctx, spanName)
-	ctx, nullifyContext := GetNullifyContext(ctx)
-	nullifyContext.Span = span
-	return ctx, span
-}
-
-// GetNullifyContext creates a new NullifyContext if one does not already exist in the context.
-func GetNullifyContext(ctx context.Context) (context.Context, *NullifyContext) {
-	if nullifyContext, ok := ctx.Value(nullifyContextKey).(*NullifyContext); ok {
-		return ctx, nullifyContext
-	} else {
-		L(ctx).Info("creating new NullifyContext")
-		nullifyContext = &NullifyContext{}
-
-		return context.WithValue(ctx, nullifyContextKey, nullifyContext), nullifyContext
-	}
-}
-
-func GetTraceID(ctx context.Context) string {
-	_, nullifyContext := GetNullifyContext(ctx)
-
-	return nullifyContext.Span.SpanContext().TraceID().String()
-}
-
-func GetAWSConfig(ctx context.Context) (aws.Config, error) {
-	_, nullifyContext := GetNullifyContext(ctx)
-
-	if nullifyContext.AWSConfig.Region == "" {
-		awsConfig, err := config.LoadDefaultConfig(ctx)
-		if err != nil {
-			L(ctx).Error("error loading AWS config", Err(err))
-			return aws.Config{}, err
-		}
-
-		nullifyContext.AWSConfig = awsConfig
-	}
-
-	return nullifyContext.AWSConfig, nil
-}
-
-func SetServiceInfo(ctx context.Context, serviceName string, serviceCategory string) {
-	_, nullifyContext := GetNullifyContext(ctx)
-
-	nullifyContext.LogConfig.Service = &Service{
-		Name:            &serviceName,
-		ServiceCategory: &serviceCategory,
-	}
 }
 
 type contextKey string
@@ -137,19 +75,32 @@ func SetMetdataForLogsAndTraces(ctx context.Context, trace trace.Span, metadata 
 	return mctx, mtrace
 }
 
-func GetContextMetadataAsFields(ctx context.Context, s interface{}, metadata map[string]string) []zapcore.Field {
-	var fields []zapcore.Field
-	v := reflect.ValueOf(s)
-	t := reflect.TypeOf(s)
+func (l *logger) getContextMetadataAsFields(logConfig LogConfig, fields []zapcore.Field) []zapcore.Field {
+	return extractFieldsFromStruct(l.attachedContext, reflect.ValueOf(logConfig), fields)
+}
 
-	// Ensure the input is a struct
+func extractFieldsFromStruct(ctx context.Context, v reflect.Value, fields []zapcore.Field) []zapcore.Field {
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+
 	if v.Kind() != reflect.Struct {
 		return fields
 	}
 
+	t := v.Type()
+
 	// Iterate through all struct fields
 	for i := 0; i < v.NumField(); i++ {
 		field := t.Field(i)
+		fieldValue := v.Field(i)
+
+		// If the field is a struct, recurse into it
+		if fieldValue.Kind() == reflect.Struct || (fieldValue.Kind() == reflect.Ptr && fieldValue.Elem().Kind() == reflect.Struct) {
+			fields = extractFieldsFromStruct(ctx, fieldValue, fields)
+			continue
+		}
+
 		jsonKey := field.Tag.Get("json")
 
 		// Skip fields without a JSON tag
