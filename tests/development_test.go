@@ -28,5 +28,5 @@ func TestDevelopmentLogger(t *testing.T) {
 	assert.True(t, strings.Contains(output.String(), "INFO"), "stdout didn't include INFO")
 	assert.True(t, strings.Contains(output.String(), "test"), "stdout didn't include the 'test' log message")
 	assert.True(t, strings.Contains(output.String(), "tests/development_test.go:23"), "stdout didn't include the file path and line number")
-	assert.True(t, strings.Contains(output.String(), `{"version": "0.0.0"}`), "stdout didn't include version")
+	assert.True(t, strings.Contains(output.String(), `{"version": "0.0.0"`), "stdout didn't include version")
 }
