@@ -5,6 +5,8 @@ import (
 
 	"reflect"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
@@ -67,6 +69,14 @@ func SetTraceAttributes(trace trace.Span, metadata map[string]string) trace.Span
 		trace.SetAttributes(attribute.String(key, value))
 	}
 	return trace
+}
+
+func GetAWSConfig(ctx context.Context) (aws.Config, error) {
+	awsConfig, err := config.LoadDefaultConfig(ctx)
+	if err != nil {
+		return aws.Config{}, err
+	}
+	return awsConfig, nil
 }
 
 func SetMetdataForLogsAndTraces(ctx context.Context, trace trace.Span, metadata map[string]string) (context.Context, trace.Span) {
