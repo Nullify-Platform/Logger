@@ -5,15 +5,13 @@ import (
 	"context"
 
 	"github.com/nullify-platform/logger/pkg/logger"
-	"github.com/nullify-platform/logger/pkg/logger/tracer"
 )
 
 func main() {
 	ctx := context.Background()
-	ctx, err := logger.ConfigureProductionLogger(ctx, "info")
-	defer logger.L(ctx).Sync()
-	ctx, span := tracer.FromContext(ctx).Start(ctx, "main")
+	ctx, span, err := logger.ConfigureProductionLogger(ctx, "main", "info")
 	defer span.End()
+	defer logger.L(ctx).Sync()
 
 	span.AddEvent("main function started")
 

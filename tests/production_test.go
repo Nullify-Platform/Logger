@@ -16,7 +16,7 @@ func TestProductionLogger(t *testing.T) {
 	ctx := context.Background()
 	var output bytes.Buffer
 
-	ctx, err := logger.ConfigureProductionLogger(ctx, "info", &output)
+	ctx, _, err := logger.ConfigureProductionLogger(ctx, "test", "info", &output)
 	require.Nil(t, err)
 	log := logger.L(ctx)
 

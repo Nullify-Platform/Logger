@@ -16,7 +16,7 @@ func TestDevelopmentLogger(t *testing.T) {
 	ctx := context.Background()
 	var output bytes.Buffer
 
-	ctx, err := logger.ConfigureDevelopmentLogger(ctx, "info", &output)
+	ctx, _, err := logger.ConfigureDevelopmentLogger(ctx, "test", "info", &output)
 	require.Nil(t, err)
 	log := logger.L(ctx)
 
