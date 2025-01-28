@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/nullify-platform/logger/pkg/logger/tracer"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -31,21 +32,31 @@ type LogConfig struct {
 }
 
 type Repository struct {
-	Name     string  `json:"repository_name"`
-	Owner    string  `json:"repository_owner"`
-	Platform string  `json:"repository_platform"`
-	CommitID *string `json:"repository_commit_id"`
-	PRNumber *string `json:"repository_pr_number"`
+	Name           *string `json:"repository_name"`
+	Owner          *string `json:"repository_owner"`
+	Platform       *string `json:"repository_platform"`
+	ID             *string `json:"repository_id"`
+	CommitID       *string `json:"repository_commit_id"` //head commit id
+	PRNumber       *string `json:"repository_pr_number"`
+	Component      *string `json:"repository_component"`
+	BranchID       *string `json:"repository_branch_id"`
+	BranchName     *string `json:"repository_branch_name"`
+	InstallationID *string `json:"repository_installation_id"`
+	AppID          *string `json:"repository_app_id"`
+	Action         *string `json:"repository_action"`
+	ProjectID      *string `json:"repository_project_id"`
+	OrganizationID *string `json:"repository_organization_id"`
 }
 
 type Service struct {
-	Name            string `json:"service_name"`
-	ServiceCategory string `json:"service_category"`
+	Name            *string `json:"service_name"`
+	ServiceCategory *string `json:"service_category"`
+	Event           *string `json:"service_event"`
 }
 
 type Tool struct {
-	Name   string `json:"tool_name"`
-	Status string `json:"tool_status"`
+	Name   *string `json:"tool_name"`
+	Status *string `json:"tool_status"`
 }
 
 // NewNullifyContext should be called at the entrypoint of a new request to initialize the NullifyContext.
@@ -95,8 +106,8 @@ func SetServiceInfo(ctx context.Context, serviceName string, serviceCategory str
 	_, nullifyContext := GetNullifyContext(ctx)
 
 	nullifyContext.LogConfig.Service = &Service{
-		Name:            serviceName,
-		ServiceCategory: serviceCategory,
+		Name:            &serviceName,
+		ServiceCategory: &serviceCategory,
 	}
 }
 
@@ -111,6 +122,19 @@ func SetMetadata(ctx context.Context, metadata map[string]string) context.Contex
 
 func setContextMetadata(ctx context.Context, inputKey contextKey, inputValue string) context.Context {
 	return context.WithValue(ctx, contextKey(inputKey), inputValue)
+}
+
+func SetTraceAttributes(trace trace.Span, metadata map[string]string) trace.Span {
+	for key, value := range metadata {
+		trace.SetAttributes(attribute.String(key, value))
+	}
+	return trace
+}
+
+func SetMetdataForLogsAndTraces(ctx context.Context, trace trace.Span, metadata map[string]string) (context.Context, trace.Span) {
+	mctx := SetMetadata(ctx, metadata)
+	mtrace := SetTraceAttributes(trace, metadata)
+	return mctx, mtrace
 }
 
 func GetContextMetadataAsFields(ctx context.Context, s interface{}, metadata map[string]string) []zapcore.Field {
