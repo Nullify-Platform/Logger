@@ -115,46 +115,6 @@ func SetTraceAttributes(trace trace.Span, metadata map[string]string) trace.Span
 	return trace
 }
 
-func extractFieldsFromStruct(ctx context.Context, v reflect.Value, fields []zapcore.Field) []zapcore.Field {
-	if v.Kind() == reflect.Ptr {
-		v = v.Elem()
-	}
-
-	if v.Kind() != reflect.Struct {
-		return fields
-	}
-
-	t := v.Type()
-
-	// Iterate through all struct fields
-	for i := 0; i < v.NumField(); i++ {
-		field := t.Field(i)
-		fieldValue := v.Field(i)
-
-		// If the field is a struct, recurse into it
-		if fieldValue.Kind() == reflect.Struct || (fieldValue.Kind() == reflect.Ptr && fieldValue.Elem().Kind() == reflect.Struct) {
-			fields = extractFieldsFromStruct(ctx, fieldValue, fields)
-			continue
-		}
-
-		jsonKey := field.Tag.Get("json")
-
-		// Skip fields without a JSON tag
-		if jsonKey == "" || jsonKey == "-" {
-			continue
-		}
-
-		// Retrieve the value from context using the field name as the key
-		key := contextKey(field.Name)
-		if value, ok := ctx.Value(key).(string); ok {
-			// Append zap field
-			fields = append(fields, zap.String(jsonKey, value))
-		}
-	}
-
-	return fields
-}
-
 func SetMetadataFromLogConfig(ctx context.Context, newLogConfig LogConfig) context.Context {
 	// Get existing context and LogConfig
 	ctx, nullifyContext := GetNullifyContext(ctx)
