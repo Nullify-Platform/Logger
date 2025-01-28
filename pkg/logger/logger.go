@@ -105,7 +105,8 @@ func (l *logger) Info(msg string, fields ...Field) {
 // Warn logs a message with the warn level
 func (l *logger) Warn(msg string, fields ...Field) {
 	l.captureExceptions(fields)
-	l.underlyingLogger.Warn(msg, fields...)
+	updateFields := l.getContextMetadataAsFields(LogConfig{}, fields)
+	l.underlyingLogger.Warn(msg, updateFields...)
 }
 
 // Error logs a message with the error level
@@ -113,16 +114,18 @@ func (l *logger) Error(msg string, fields ...Field) {
 	trace.SpanFromContext(l.attachedContext).RecordError(errors.New(msg))
 	trace.SpanFromContext(l.attachedContext).SetStatus(codes.Error, msg)
 	l.captureExceptions(fields)
-	l.underlyingLogger.Error(msg, fields...)
+	updateFields := l.getContextMetadataAsFields(LogConfig{}, fields)
+	l.underlyingLogger.Error(msg, updateFields...)
 }
 
 // Fatal logs a message with the fatal level and then calls os.Exit(1)
 func (l *logger) Fatal(msg string, fields ...Field) {
 	trace.SpanFromContext(l.attachedContext).SetStatus(codes.Error, msg)
 	l.captureExceptions(fields)
+	updateFields := l.getContextMetadataAsFields(LogConfig{}, fields)
 	l.Sync()
 
-	l.underlyingLogger.Fatal(msg, fields...)
+	l.underlyingLogger.Fatal(msg, updateFields...)
 }
 
 // captureExceptions captures exceptions from fields and sends them to sentry
