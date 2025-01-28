@@ -28,6 +28,8 @@ func TracerMiddleware(next http.Handler) http.Handler {
 			attribute.String("http.query", r.URL.Query().Encode()),
 		)
 
+		r = r.WithContext(ctx)
+
 		next.ServeHTTP(w, r)
 	})
 }
