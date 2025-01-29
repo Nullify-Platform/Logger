@@ -34,6 +34,9 @@ type repository struct {
 	Action         *string `json:"action"`
 	ProjectID      *string `json:"project_id"`
 	OrganizationID *string `json:"organization_id"`
+	CloneURL       *string `json:"clone_url"`
+	StartCommitSha *string `json:"start_commit_sha"`
+	EndCommitSha   *string `json:"end_commit_sha"`
 }
 
 type service struct {
