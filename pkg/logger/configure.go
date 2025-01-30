@@ -22,7 +22,6 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
-	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
@@ -83,7 +82,7 @@ func ConfigureDevelopmentLogger(ctx context.Context, level string, syncs ...io.W
 }
 
 // ConfigureProductionLogger configures a JSON production logger
-func ConfigureProductionLogger(ctx context.Context, spanName string, level string, syncs ...io.Writer) (context.Context, trace.Span, error) {
+func ConfigureProductionLogger(ctx context.Context, level string, syncs ...io.Writer) (context.Context, error) {
 	zapLevel, err := zapcore.ParseLevel(level)
 	if err != nil {
 		zap.L().Error("failed to parse log level, using info", zap.Error(err))
@@ -130,7 +129,7 @@ func ConfigureProductionLogger(ctx context.Context, spanName string, level strin
 
 	tp, err := newTraceProvider(traceExporter)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	otel.SetTracerProvider(tp)
@@ -140,8 +139,7 @@ func ConfigureProductionLogger(ctx context.Context, spanName string, level strin
 	l := &logger{underlyingLogger: zapLogger}
 	ctx = l.InjectIntoContext(ctx)
 	ctx = tracer.NewContext(ctx, tp, "prod-logger-tracer")
-	ctx, span := NewNullifyContext(ctx, spanName)
-	return ctx, span, nil
+	return ctx, nil
 }
 
 func newTraceProvider(exp sdktrace.SpanExporter) (*sdktrace.TracerProvider, error) {
