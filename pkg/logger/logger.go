@@ -37,9 +37,6 @@ type Logger interface {
 	InjectIntoContext(ctx context.Context) context.Context
 	PassContext(ctx context.Context)
 
-	// nullify context
-	// GetNullifyContext(ctx context.Context) *NullifyContext
-	// SetMetadataForLoggingConfig(newLoggingConfig *LogConfig)
 	SetSpanAttributes(spanName string)
 }
 
