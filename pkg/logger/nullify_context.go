@@ -22,10 +22,9 @@ const nullifyContextKey nullifyContextKeyType = "NullifyContext"
 
 // NullifyContext holds a mutable tree of BotActions and other useful data
 type NullifyContext struct {
-	AWSConfig   aws.Config
-	Span        trace.Span
-	LogConfig   LogConfig
-	TraceConfig TraceConfig
+	AWSConfig aws.Config
+	Span      trace.Span
+	LogConfig LogConfig
 }
 
 // LogConfig holds configuration for logging
@@ -43,10 +42,6 @@ type Platform struct {
 }
 
 // TraceConfig holds tracing configuration
-type TraceConfig struct {
-	SpanName string `json:"span_name"`
-	Span     trace.Span
-}
 
 // Repository holds repository-specific information
 type Repository struct {
@@ -149,7 +144,7 @@ func extractFieldsFromStruct(ctx context.Context, v reflect.Value, fields []zapc
 
 		// Retrieve the value from context using the field name as the key
 		key := contextKey(field.Name)
-		if value, ok := ctx.Value(key).(string); ok {
+		if value, ok := ctx.Value(key).(string); ok && value != "" {
 			// Append zap field
 			fields = append(fields, zap.String(snakeToCamel(jsonKey), value))
 		}
@@ -175,27 +170,23 @@ func snakeToCamel(s string) string {
 func (l *logger) SetSpanAttributes(spanName string) {
 	nullifyContext := l.attachedContext.Value(nullifyContextKey).(*NullifyContext)
 	l.attachedContext, nullifyContext.Span = tracer.StartNewSpan(l.attachedContext, spanName)
-	defer nullifyContext.Span.End()
-	if nullifyContext.TraceConfig.SpanName != "" {
-		v := reflect.ValueOf(nullifyContext.LogConfig)
-		t := v.Type()
-		for i := 0; i < v.NumField(); i++ {
-			field := v.Field(i)
-			fieldType := t.Field(i)
-			nullifyContext.Span.SetAttributes(attribute.String(snakeToCamel(fieldType.Name), field.Kind().String()))
-			// If the field is a struct, recurse into it
-			if field.Kind() == reflect.Struct {
-				l.setStructAttributes(field)
-				continue
-			}
-
-			jsonKey := fieldType.Tag.Get("json")
-			if jsonKey == "" || jsonKey == "-" {
-				continue
-			}
-
-			nullifyContext.Span.SetAttributes(attribute.String(snakeToCamel(jsonKey), field.String()))
+	v := reflect.ValueOf(nullifyContext.LogConfig)
+	t := v.Type()
+	for i := 0; i < v.NumField(); i++ {
+		field := v.Field(i)
+		fieldType := t.Field(i)
+		// If the field is a struct, recurse into it
+		if field.Kind() == reflect.Struct {
+			l.setStructAttributes(field)
+			continue
 		}
+
+		jsonKey := fieldType.Tag.Get("json")
+		if jsonKey == "" || jsonKey == "-" {
+			continue
+		}
+
+		nullifyContext.Span.SetAttributes(attribute.String(snakeToCamel(jsonKey), field.String()))
 	}
 }
 
@@ -215,6 +206,8 @@ func (l *logger) setStructAttributes(v reflect.Value) {
 		if jsonKey == "" || jsonKey == "-" {
 			continue
 		}
-		nullifyContext.Span.SetAttributes(attribute.String(snakeToCamel(jsonKey), field.String()))
+		if field.String() != "" {
+			nullifyContext.Span.SetAttributes(attribute.String(snakeToCamel(jsonKey), field.String()))
+		}
 	}
 }
