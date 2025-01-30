@@ -25,6 +25,8 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
 // Version is the current version of the application
@@ -93,9 +95,23 @@ func ConfigureProductionLogger(ctx context.Context, spanName string, level strin
 		sync = syncs[0]
 	}
 
+	encoderConfig := zapcore.EncoderConfig{
+		TimeKey:        "timestamp",
+		LevelKey:       "level",
+		NameKey:        "logger",
+		CallerKey:      "caller",
+		MessageKey:     "msg",
+		StacktraceKey:  "stacktrace",
+		LineEnding:     zapcore.DefaultLineEnding,
+		EncodeLevel:    zapcore.LowercaseLevelEncoder,
+		EncodeTime:     zapcore.ISO8601TimeEncoder,
+		EncodeDuration: zapcore.StringDurationEncoder,
+		EncodeCaller:   zapcore.FullCallerEncoder,
+	}
+
 	zapLogger := zap.New(
 		zapcore.NewCore(
-			zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()),
+			zapcore.NewJSONEncoder(encoderConfig),
 			zapcore.AddSync(sync),
 			zapLevel,
 		),
