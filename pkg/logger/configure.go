@@ -22,11 +22,9 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"k8s.io/utils/trace"
-
-	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
 // Version is the current version of the application
@@ -37,7 +35,7 @@ var Version = "0.0.0"
 var extraTags = map[string]string{}
 
 // ConfigureDevelopmentLogger configures a development logger which is more human readable instead of JSON
-func ConfigureDevelopmentLogger(ctx context.Context, spanName string, level string, syncs ...io.Writer) (context.Context, trace.Trace, error) {
+func ConfigureDevelopmentLogger(ctx context.Context, level string, syncs ...io.Writer) (context.Context, error) {
 	// configure level
 	zapLevel, err := zapcore.ParseLevel(level)
 	if err != nil {
@@ -69,7 +67,7 @@ func ConfigureDevelopmentLogger(ctx context.Context, spanName string, level stri
 
 	tp, err := newTraceProvider(traceExporter)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	otel.SetTracerProvider(tp)
@@ -78,13 +76,12 @@ func ConfigureDevelopmentLogger(ctx context.Context, spanName string, level stri
 
 	l := &logger{underlyingLogger: zapLogger}
 	ctx = l.InjectIntoContext(ctx)
-	ctx, nullifyContext := GetNullifyContext(ctx)
-
-	return ctx, nullifyContext.Span, nil
+	ctx = tracer.NewContext(ctx, tp, "dev-logger-tracer")
+	return ctx, nil
 }
 
 // ConfigureProductionLogger configures a JSON production logger
-func ConfigureProductionLogger(ctx context.Context, level string, syncs ...io.Writer) (context.Context, error) {
+func ConfigureProductionLogger(ctx context.Context, spanName string, level string, syncs ...io.Writer) (context.Context, trace.Span, error) {
 	zapLevel, err := zapcore.ParseLevel(level)
 	if err != nil {
 		zap.L().Error("failed to parse log level, using info", zap.Error(err))
@@ -96,23 +93,9 @@ func ConfigureProductionLogger(ctx context.Context, level string, syncs ...io.Wr
 		sync = syncs[0]
 	}
 
-	encoderConfig := zapcore.EncoderConfig{
-		TimeKey:        "timestamp",
-		LevelKey:       "level",
-		NameKey:        "logger",
-		CallerKey:      "caller",
-		MessageKey:     "msg",
-		StacktraceKey:  "stacktrace",
-		LineEnding:     zapcore.DefaultLineEnding,
-		EncodeLevel:    zapcore.LowercaseLevelEncoder,
-		EncodeTime:     zapcore.ISO8601TimeEncoder,
-		EncodeDuration: zapcore.StringDurationEncoder,
-		EncodeCaller:   zapcore.FullCallerEncoder,
-	}
-
 	zapLogger := zap.New(
 		zapcore.NewCore(
-			zapcore.NewJSONEncoder(encoderConfig),
+			zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()),
 			zapcore.AddSync(sync),
 			zapLevel,
 		),
@@ -131,7 +114,7 @@ func ConfigureProductionLogger(ctx context.Context, level string, syncs ...io.Wr
 
 	tp, err := newTraceProvider(traceExporter)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	otel.SetTracerProvider(tp)
@@ -141,8 +124,8 @@ func ConfigureProductionLogger(ctx context.Context, level string, syncs ...io.Wr
 	l := &logger{underlyingLogger: zapLogger}
 	ctx = l.InjectIntoContext(ctx)
 	ctx = tracer.NewContext(ctx, tp, "prod-logger-tracer")
-
-	return ctx, nil
+	ctx, span := NewNullifyContext(ctx, spanName)
+	return ctx, span, nil
 }
 
 func newTraceProvider(exp sdktrace.SpanExporter) (*sdktrace.TracerProvider, error) {
