@@ -36,6 +36,11 @@ type Logger interface {
 	// context
 	InjectIntoContext(ctx context.Context) context.Context
 	PassContext(ctx context.Context)
+
+	// nullify context
+	// GetNullifyContext(ctx context.Context) *NullifyContext
+	// SetMetadataForLoggingConfig(newLoggingConfig *LogConfig)
+	SetSpanAttributes(spanName string)
 }
 
 type logger struct {
@@ -94,18 +99,20 @@ func (l *logger) Sync() {
 
 // Debug logs a message with the debug level
 func (l *logger) Debug(msg string, fields ...Field) {
-	l.underlyingLogger.Debug(msg, fields...)
+	updateFields := l.getContextMetadataAsFields(fields)
+	l.underlyingLogger.Debug(msg, updateFields...)
 }
 
 // Info logs a message with the info level
 func (l *logger) Info(msg string, fields ...Field) {
-	l.underlyingLogger.Info(msg, fields...)
+	updateFields := l.getContextMetadataAsFields(fields)
+	l.underlyingLogger.Info(msg, updateFields...)
 }
 
 // Warn logs a message with the warn level
 func (l *logger) Warn(msg string, fields ...Field) {
 	l.captureExceptions(fields)
-	updateFields := l.getContextMetadataAsFields(LogConfig{}, fields)
+	updateFields := l.getContextMetadataAsFields(fields)
 	l.underlyingLogger.Warn(msg, updateFields...)
 }
 
@@ -114,7 +121,7 @@ func (l *logger) Error(msg string, fields ...Field) {
 	trace.SpanFromContext(l.attachedContext).RecordError(errors.New(msg))
 	trace.SpanFromContext(l.attachedContext).SetStatus(codes.Error, msg)
 	l.captureExceptions(fields)
-	updateFields := l.getContextMetadataAsFields(LogConfig{}, fields)
+	updateFields := l.getContextMetadataAsFields(fields)
 	l.underlyingLogger.Error(msg, updateFields...)
 }
 
@@ -122,7 +129,7 @@ func (l *logger) Error(msg string, fields ...Field) {
 func (l *logger) Fatal(msg string, fields ...Field) {
 	trace.SpanFromContext(l.attachedContext).SetStatus(codes.Error, msg)
 	l.captureExceptions(fields)
-	updateFields := l.getContextMetadataAsFields(LogConfig{}, fields)
+	updateFields := l.getContextMetadataAsFields(fields)
 	l.Sync()
 
 	l.underlyingLogger.Fatal(msg, updateFields...)
