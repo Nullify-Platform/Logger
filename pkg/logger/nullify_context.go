@@ -3,8 +3,6 @@ package logger
 import (
 	"context"
 	"reflect"
-	"strings"
-	"unicode"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -37,42 +35,43 @@ type LogConfig struct {
 
 // Platform holds platform-specific information
 type Platform struct {
-	Name      string `json:"platform_name"`
-	Component string `json:"platform_component"`
+	Name      string `json:"platformName"`
+	Component string `json:"platformComponent"`
 }
 
 // TraceConfig holds tracing configuration
 
 // Repository holds repository-specific information
 type Repository struct {
-	Name           string `json:"repository_name"`
-	Owner          string `json:"repository_owner"`
-	ID             string `json:"repository_id"`
-	CommitID       string `json:"commit_id"`
-	PrNumber       string `json:"pr_number"`
-	BranchID       string `json:"branch_id"`
-	BranchName     string `json:"branch_name"`
-	InstallationID string `json:"installation_id"`
-	AppID          string `json:"app_id"`
+	Name           string `json:"repositoryName"`
+	Owner          string `json:"repositoryOwner"`
+	ID             string `json:"repositoryId"`
+	CommitID       string `json:"commitId"`
+	PrNumber       string `json:"prNumber"`
+	BranchID       string `json:"branchId"`
+	BranchName     string `json:"branchName"`
+	InstallationID string `json:"installationId"`
+	AppID          string `json:"appId"`
 	Action         string `json:"action"`
-	ProjectID      string `json:"project_id"`
-	OrganizationID string `json:"organization_id"`
-	StartCommitSha string `json:"start_commit_sha"`
-	EndCommitSha   string `json:"end_commit_sha"`
-	CloneURL       string `json:"clone_url"`
+	ProjectName    string `json:"projectName"`
+	ProjectID      string `json:"projectId"`
+	OrganizationID string `json:"organizationId"`
+	StartCommitSha string `json:"startCommitSha"`
+	EndCommitSha   string `json:"endCommitSha"`
+	CloneURL       string `json:"cloneUrl"`
 }
 
 // Service holds service-specific information
 type Service struct {
-	Name     string `json:"service_name"`
-	Category string `json:"service_category"`
-	Event    string `json:"service_event"`
+	Name     string `json:"serviceName"`
+	Category string `json:"serviceCategory"`
+	Event    string `json:"serviceEvent"`
 }
 
 // Tool holds tool-specific information
 type Tool struct {
-	Name   string `json:"tool_name"`
-	Status string `json:"tool_status"`
+	Name   string `json:"toolName"`
+	Status string `json:"toolStatus"`
 }
 
 // GetNullifyContext creates a new NullifyContext if one does not already exist in the context.
@@ -146,25 +145,37 @@ func extractFieldsFromStruct(ctx context.Context, v reflect.Value, fields []zapc
 		key := contextKey(field.Name)
 		if value, ok := ctx.Value(key).(string); ok && value != "" {
 			// Append zap field
-			fields = append(fields, zap.String(snakeToCamel(jsonKey), value))
+			fields = append(fields, zap.String(jsonKey, value))
 		}
 	}
 
 	return fields
 }
 
-// snakeToCamel converts snake_case to camelCase
-func snakeToCamel(s string) string {
-	parts := strings.Split(s, "_")
-	for i := 1; i < len(parts); i++ {
-		r := []rune(parts[i])
-		if len(r) > 0 {
-			r[0] = unicode.ToTitle(r[0])
-			parts[i] = string(r)
-		}
-	}
-	return strings.Join(parts, "")
-}
+// TODO: This is a temporary function to get the function name. We need to fine tune it to get the function name as there are some edge cases and we need to handle them
+// func (l *logger) getFunctionName() string {
+// 	pc, _, _, _ := runtime.Caller(2)
+// 	fullName := runtime.FuncForPC(pc).Name()
+
+// 	// Step 1: Remove full module and directory path
+// 	if lastSlash := strings.LastIndex(fullName, "/"); lastSlash != -1 {
+// 		fullName = fullName[lastSlash+1:] // Keep only package and function parts
+// 	}
+
+// 	// Step 2: Remove ".funcN" suffix, if it exists
+// 	if funcSuffix := strings.LastIndex(fullName, ".func"); funcSuffix != -1 {
+// 		fullName = fullName[:funcSuffix]
+// 	}
+
+// 	// Step 3: Handle struct method pattern (*StructName).Method
+// 	if structMethodIdx := strings.Index(fullName, ")."); structMethodIdx != -1 {
+// 		// Extract the part before ")." and after the last dot (e.g., "*GitHubTokenTransport")
+// 		lastDotBeforeStruct := strings.LastIndex(fullName[:structMethodIdx], ".")
+// 		fullName = fullName[:lastDotBeforeStruct] + fullName[structMethodIdx+2:]
+// 	}
+
+// 	return fullName
+// }
 
 // SetSpanAttributes sets attributes on the current span based on the LogConfig
 func (l *logger) SetSpanAttributes(spanName string) {
@@ -186,7 +197,7 @@ func (l *logger) SetSpanAttributes(spanName string) {
 			continue
 		}
 
-		nullifyContext.Span.SetAttributes(attribute.String(snakeToCamel(jsonKey), field.String()))
+		nullifyContext.Span.SetAttributes(attribute.String(jsonKey, field.String()))
 	}
 }
 
@@ -207,7 +218,7 @@ func (l *logger) setStructAttributes(v reflect.Value) {
 			continue
 		}
 		if field.String() != "" {
-			nullifyContext.Span.SetAttributes(attribute.String(snakeToCamel(jsonKey), field.String()))
+			nullifyContext.Span.SetAttributes(attribute.String(jsonKey, field.String()))
 		}
 	}
 }
