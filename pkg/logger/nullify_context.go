@@ -178,9 +178,13 @@ func extractFieldsFromStruct(ctx context.Context, v reflect.Value, fields []zapc
 // }
 
 // SetSpanAttributes sets attributes on the current span based on the LogConfig
-func (l *logger) SetSpanAttributes(spanName string) {
+func (l *logger) SetSpanAttributes(spanName string) context.Context {
 	nullifyContext := l.attachedContext.Value(nullifyContextKey).(*NullifyContext)
-	l.attachedContext, nullifyContext.Span = tracer.StartNewSpan(l.attachedContext, spanName)
+	newContext, span := tracer.FromContext(l.attachedContext).Start(l.attachedContext, spanName)
+	// Update both the span and context in one operation
+	nullifyContext.Span = span
+	l.attachedContext = context.WithValue(newContext, nullifyContextKey, nullifyContext)
+
 	v := reflect.ValueOf(nullifyContext.LogConfig)
 	t := v.Type()
 	for i := 0; i < v.NumField(); i++ {
@@ -198,7 +202,9 @@ func (l *logger) SetSpanAttributes(spanName string) {
 		}
 
 		nullifyContext.Span.SetAttributes(attribute.String(jsonKey, field.String()))
+		l.attachedContext = context.WithValue(l.attachedContext, nullifyContextKey, nullifyContext)
 	}
+	return l.attachedContext
 }
 
 // setStructAttributes sets attributes for struct fields recursively

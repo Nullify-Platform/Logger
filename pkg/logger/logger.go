@@ -37,7 +37,7 @@ type Logger interface {
 	InjectIntoContext(ctx context.Context) context.Context
 	PassContext(ctx context.Context)
 
-	SetSpanAttributes(spanName string)
+	SetSpanAttributes(spanName string) context.Context
 }
 
 type logger struct {
