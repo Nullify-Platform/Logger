@@ -55,10 +55,6 @@ func anotherFunction(ctx context.Context) {
 }
 ```
 
-## Error Collection
-
-To collect errors and send them to GlitchTip, you have to set the `SENTRY_DSN` environment variable.
-
 ## OpenTelemetry Exporting
 
 To actually have your traces exported, you need to set a few environment variables in your service:

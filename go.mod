@@ -7,7 +7,6 @@ toolchain go1.23.4
 require go.uber.org/multierr v1.11.0 // indirect
 
 require (
-	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.7 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.51 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.23 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.27 // indirect
@@ -45,13 +44,9 @@ require (
 	github.com/aws/aws-lambda-go v1.47.0
 	github.com/aws/aws-sdk-go-v2 v1.32.8
 	github.com/aws/aws-sdk-go-v2/config v1.28.10
-	github.com/aws/aws-sdk-go-v2/service/ecs v1.53.4
-	github.com/aws/aws-sdk-go-v2/service/lambda v1.69.4
 	github.com/aws/aws-sdk-go-v2/service/sns v1.33.10
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.37.6
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.56.4
-	github.com/getsentry/sentry-go v0.31.1
-	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.10.0
 	go.opentelemetry.io/otel v1.33.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.33.0

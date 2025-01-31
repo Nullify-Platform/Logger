@@ -4,17 +4,11 @@ package logger
 import (
 	"context"
 	"errors"
-	"fmt"
-	"os"
-	"strings"
-	"time"
 
-	"github.com/getsentry/sentry-go"
 	"github.com/nullify-platform/logger/pkg/logger/tracer"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
 // Logger is the interface that for all the basic logging methods
@@ -81,14 +75,6 @@ func (l *logger) Sync() {
 		l.Warn("tracer.ForceFlush failed", Err(err))
 	}
 
-	if os.Getenv("SENTRY_DSN") != "" {
-		success := sentry.Flush(1000 * time.Millisecond)
-
-		if !success {
-			l.Error("sentry.Flush failed")
-		}
-	}
-
 	_ = l.underlyingLogger.Sync()
 }
 
@@ -104,7 +90,6 @@ func (l *logger) Info(msg string, fields ...Field) {
 
 // Warn logs a message with the warn level
 func (l *logger) Warn(msg string, fields ...Field) {
-	l.captureExceptions(fields)
 	updateFields := l.getContextMetadataAsFields(LogConfig{}, fields)
 	l.underlyingLogger.Warn(msg, updateFields...)
 }
@@ -113,7 +98,6 @@ func (l *logger) Warn(msg string, fields ...Field) {
 func (l *logger) Error(msg string, fields ...Field) {
 	trace.SpanFromContext(l.attachedContext).RecordError(errors.New(msg))
 	trace.SpanFromContext(l.attachedContext).SetStatus(codes.Error, msg)
-	l.captureExceptions(fields)
 	updateFields := l.getContextMetadataAsFields(LogConfig{}, fields)
 	l.underlyingLogger.Error(msg, updateFields...)
 }
@@ -121,79 +105,8 @@ func (l *logger) Error(msg string, fields ...Field) {
 // Fatal logs a message with the fatal level and then calls os.Exit(1)
 func (l *logger) Fatal(msg string, fields ...Field) {
 	trace.SpanFromContext(l.attachedContext).SetStatus(codes.Error, msg)
-	l.captureExceptions(fields)
 	updateFields := l.getContextMetadataAsFields(LogConfig{}, fields)
 	l.Sync()
 
 	l.underlyingLogger.Fatal(msg, updateFields...)
-}
-
-// captureExceptions captures exceptions from fields and sends them to sentry
-func (l *logger) captureExceptions(fields []Field) {
-	if os.Getenv("SENTRY_DSN") == "" {
-		return
-	}
-
-	for _, f := range fields {
-		if f.Type != zapcore.ErrorType {
-			continue
-		}
-
-		// cast the interface to an error
-		err, ok := f.Interface.(error)
-		if !ok {
-			continue
-		}
-
-		span := trace.SpanFromContext(l.attachedContext)
-		span.RecordError(err, trace.WithStackTrace(true))
-
-		region := os.Getenv("AWS_REGION")
-		if region == "" {
-			region = os.Getenv("AWS_DEFAULT_REGION")
-		}
-
-		// provide trace context to sentry
-		sentry.WithScope(func(scope *sentry.Scope) {
-			if os.Getenv("AWS_LAMBDA_FUNCTION_NAME") != "" {
-				scope.SetContext("aws", map[string]interface{}{
-					"lambda": os.Getenv("AWS_LAMBDA_FUNCTION_NAME"),
-					"logsURL": formatLogsURL(
-						region,
-						os.Getenv("AWS_LAMBDA_LOG_GROUP_NAME"),
-						os.Getenv("AWS_LAMBDA_LOG_STREAM_NAME"),
-					),
-				})
-			} else if os.Getenv("ECS_SERVICE_NAME") != "" {
-				scope.SetContext("aws", map[string]interface{}{
-					"ecs": os.Getenv("ECS_SERVICE_NAME"),
-					"logsURL": formatLogsURL(
-						region,
-						os.Getenv("AWS_ECS_LOG_GROUP_NAME"),
-						os.Getenv("AWS_ECS_LOG_STREAM_NAME"),
-					),
-				})
-			}
-
-			scope.SetContext("trace", map[string]interface{}{
-				"traceID": span.SpanContext().TraceID().String(),
-				"spanID":  span.SpanContext().SpanID().String(),
-			})
-
-			sentry.CaptureException(err)
-		})
-	}
-}
-
-func formatLogsURL(region string, logGroupName string, logStreamName string) string {
-	logGroupName = strings.ReplaceAll(logGroupName, "/", "$252F")
-
-	logStreamName = strings.ReplaceAll(logStreamName, "$", "$2524")
-	logStreamName = strings.ReplaceAll(logStreamName, "/", "$252F")
-	logStreamName = strings.ReplaceAll(logStreamName, "[", "$255B")
-	logStreamName = strings.ReplaceAll(logStreamName, "]", "$255D")
-
-	return fmt.Sprintf("https://%s.console.aws.amazon.com/cloudwatch/home?region=%s#logsV2:log-groups/log-group/%s/log-events/%s",
-		region, region, logGroupName, logStreamName,
-	)
 }
