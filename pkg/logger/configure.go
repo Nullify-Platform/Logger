@@ -78,7 +78,6 @@ func ConfigureDevelopmentLogger(ctx context.Context, level string, syncs ...io.W
 	l := &logger{underlyingLogger: zapLogger}
 	ctx = l.InjectIntoContext(ctx)
 	ctx = tracer.NewContext(ctx, tp, "dev-logger-tracer")
-
 	return ctx, nil
 }
 
@@ -140,7 +139,6 @@ func ConfigureProductionLogger(ctx context.Context, level string, syncs ...io.Wr
 	l := &logger{underlyingLogger: zapLogger}
 	ctx = l.InjectIntoContext(ctx)
 	ctx = tracer.NewContext(ctx, tp, "prod-logger-tracer")
-
 	return ctx, nil
 }
 
