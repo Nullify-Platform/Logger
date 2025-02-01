@@ -94,7 +94,7 @@ func (l *logger) Info(msg string, fields ...Field) {
 
 // Warn logs a message with the warn level
 func (l *logger) Warn(msg string, fields ...Field) {
-  updateFields := l.getContextMetadataAsFields(fields)
+	updateFields := l.getContextMetadataAsFields(fields)
 	l.underlyingLogger.Warn(msg, updateFields...)
 }
 
@@ -109,7 +109,7 @@ func (l *logger) Error(msg string, fields ...Field) {
 // Fatal logs a message with the fatal level and then calls os.Exit(1)
 func (l *logger) Fatal(msg string, fields ...Field) {
 	trace.SpanFromContext(l.attachedContext).SetStatus(codes.Error, msg)
-  updateFields := l.getContextMetadataAsFields(fields)
+	updateFields := l.getContextMetadataAsFields(fields)
 	l.Sync()
 
 	l.underlyingLogger.Fatal(msg, updateFields...)
