@@ -70,7 +70,6 @@ func ConfigureDevelopmentLogger(ctx context.Context, level string, syncs ...io.W
 	l := &logger{underlyingLogger: zapLogger}
 	ctx = l.InjectIntoContext(ctx)
 	ctx = tracer.NewContext(ctx, tp, "dev-logger-tracer")
-
 	return ctx, nil
 }
 
@@ -87,9 +86,23 @@ func ConfigureProductionLogger(ctx context.Context, level string, syncs ...io.Wr
 		sync = syncs[0]
 	}
 
+	encoderConfig := zapcore.EncoderConfig{
+		TimeKey:        "timestamp",
+		LevelKey:       "level",
+		NameKey:        "logger",
+		CallerKey:      "caller",
+		MessageKey:     "msg",
+		StacktraceKey:  "stacktrace",
+		LineEnding:     zapcore.DefaultLineEnding,
+		EncodeLevel:    zapcore.LowercaseLevelEncoder,
+		EncodeTime:     zapcore.ISO8601TimeEncoder,
+		EncodeDuration: zapcore.StringDurationEncoder,
+		EncodeCaller:   zapcore.FullCallerEncoder,
+	}
+
 	zapLogger := zap.New(
 		zapcore.NewCore(
-			zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()),
+			zapcore.NewJSONEncoder(encoderConfig),
 			zapcore.AddSync(sync),
 			zapLevel,
 		),
@@ -116,7 +129,6 @@ func ConfigureProductionLogger(ctx context.Context, level string, syncs ...io.Wr
 	l := &logger{underlyingLogger: zapLogger}
 	ctx = l.InjectIntoContext(ctx)
 	ctx = tracer.NewContext(ctx, tp, "prod-logger-tracer")
-
 	return ctx, nil
 }
 
