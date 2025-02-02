@@ -8,12 +8,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getsentry/sentry-go"
 	"github.com/nullify-platform/logger/pkg/logger"
 )
 
 type responseWriter struct {
 	http.ResponseWriter
+
 	StatusCode int
 }
 
@@ -48,11 +48,8 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 
 		defer func() {
 			if err := recover(); err != nil {
-				if e, ok := err.(error); ok {
-					sentry.CaptureException(e)
-				}
-
 				w.WriteHeader(http.StatusInternalServerError)
+
 				logger.L(ctx).Error(
 					"endpoint handler panicked",
 					logger.Any("err", err),
