@@ -65,6 +65,10 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 				continue
 			}
 
+			if strings.ToLower(header) == "cookie" {
+				continue
+			}
+
 			for _, value := range values {
 				reqHeaders = append(reqHeaders, header+": "+value)
 			}
