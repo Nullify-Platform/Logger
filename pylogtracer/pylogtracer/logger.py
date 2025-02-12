@@ -1,6 +1,7 @@
 from loguru import logger
 import sys
 import json
+import os
 
 class StructuredLogger:
     def __init__(self):
@@ -15,20 +16,27 @@ class StructuredLogger:
             "message": record["message"],
             "file": record["file"].name,
             "line": record["line"],
+            "context": record["extra"].get("context", {}),
         }
         return json.dumps(log_data)
 
-    def info(self, msg):
-        logger.info(msg)
+    def log(self, level, msg, **context):
+        logger.bind(context=context).log(level.upper(), msg)
 
-    def warn(self, msg):
-        logger.warning(msg)
+    def debug(self, msg, **context):
+        self.log("DEBUG", msg, **context)
 
-    def error(self, msg):
-        logger.error(msg)
+    def info(self, msg, **context):
+        self.log("INFO", msg, **context)
 
-    def fatal(self, msg):
-        logger.critical(msg)
+    def warn(self, msg, **context):
+        self.log("WARNING", msg, **context)
+
+    def error(self, msg, **context):
+        self.log("ERROR", msg, **context)
+
+    def fatal(self, msg, **context):
+        self.log("CRITICAL", msg, **context)
         sys.exit(1)  # Exit with error
 
 structured_logger = StructuredLogger()
