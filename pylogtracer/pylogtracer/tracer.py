@@ -1,9 +1,8 @@
 from functools import wraps
 from opentelemetry import trace
 from opentelemetry.propagate import extract
-from opentelemetry.context import get_current
-from pylogtrace import tracer
-from pylogtrace.logger import structured_logger
+from pylogtracer import tracer
+from pylogtracer.logger import structured_logger
 
 def trace_span(func):
     """Decorator to trace function execution with OpenTelemetry"""

@@ -1,7 +1,6 @@
 from loguru import logger
 import sys
 import json
-import os
 
 class StructuredLogger:
     def __init__(self):
