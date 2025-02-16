@@ -10,6 +10,5 @@ setup(
         "opentelemetry-exporter-otlp",
         "loguru"
     ],
-    author="platform@nullify.ai",
     description="Internal logging library with structured logs and tracing",
 )

@@ -1,0 +1,10 @@
+README.md
+setup.py
+pylogtracer/__init__.py
+pylogtracer/logger.py
+pylogtracer/tracer.py
+pylogtracer.egg-info/PKG-INFO
+pylogtracer.egg-info/SOURCES.txt
+pylogtracer.egg-info/dependency_links.txt
+pylogtracer.egg-info/requires.txt
+pylogtracer.egg-info/top_level.txt
