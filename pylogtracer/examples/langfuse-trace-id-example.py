@@ -1,37 +1,30 @@
-import os
-from uuid import uuid4
-from langfuse import Langfuse
-from langfuse.decorators import observe
+from pylogtracer import structured_logger
+from pylogtracer import trace_span
 
-# Initialize Langfuse client
-langfuse = Langfuse(
-    secret_key=os.getenv("LANGFUSE_SECRET_KEY"),
-    public_key=os.getenv("LANGFUSE_PUBLIC_KEY"),
-    host=os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com")
-)
+# Basic logging
+structured_logger.info("Application started", environment="production", version="1.0.0")
+structured_logger.debug("Debug message", user_id="123")
+structured_logger.error("Something went wrong", error_code=500)
 
-# Generate a unique trace ID
-trace_id = str(uuid4())
-print("Trace ID:", trace_id)
- 
-@observe(name="test")
-def process_user_request(user_id, request_data, **kwargs):
-    # Function logic here
-    print("Processing user request:", user_id, request_data, kwargs)
-    pass
- 
-@observe()
-def main(**kwargs):
-    trace = langfuse.trace(
-        name="main_trace",
-        id=trace_id  # Use the same trace ID
-    )
-    process_user_request(
-        "user_id",
-        "request",
-        langfuse_parent_trace_id=trace.id,
-        **kwargs
-    )
- 
- 
-main(langfuse_parent_trace_id=trace_id)
+@trace_span(span_name="process_order2")
+def process_order2(order_id, user_id):
+    structured_logger.info("Processing order", order_id=order_id, user_id=user_id)
+    # ... your processing logic here ...
+    return {"status": "success"}
+
+
+@trace_span()
+def process_order1(order_id, user_id):
+    structured_logger.info("Processing order", order_id=order_id, user_id=user_id)
+    # ... your processing logic here ...
+    return process_order2(order_id, user_id)
+
+# Using the tracer decorator
+@trace_span(span_name="process_order")
+def process_order(order_id, user_id):
+    structured_logger.info("Processing order", order_id=order_id, user_id=user_id)
+    # ... your processing logic here ...
+    return process_order1(order_id, user_id)
+
+#Call the traced function
+result = process_order("ORDER123", "USER456")

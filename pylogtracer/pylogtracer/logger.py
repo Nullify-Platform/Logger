@@ -1,26 +1,28 @@
 from loguru import logger
 import sys
 import json
-
+import inspect
 class StructuredLogger:
     def __init__(self):
         logger.remove()  # Remove default handlers
-        logger.add(sys.stdout, format=self.format_json)
-
-    def format_json(self, message):
-        record = message.record
+        logger.add(sys.stdout, format="{time} {level} {message} {file} {line} {function}", serialize=True)
+    def format_json(self, record):
         log_data = {
-            "timestamp": record["time"].strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+            "timestamp": record["time"].isoformat(),
             "level": record["level"].name,
             "message": record["message"],
-            "file": record["file"].name,
+            "file": record["file"].path,
             "line": record["line"],
-            "context": record["extra"].get("context", {}),
+            "function": record["function"],
+            "module": record["module"],
+            "process": record["process"].id,
+            "thread": record["thread"].id,
+            "context": record["extra"].get("context", {})
         }
-        return json.dumps(log_data)
+        return json.dumps(log_data) + "\n"
 
     def log(self, level, msg, **context):
-        logger.bind(context=context).log(level.upper(), msg)
+        logger.opt(depth=2).bind(context=context).log(level.upper(), msg)
 
     def debug(self, msg, **context):
         self.log("DEBUG", msg, **context)
