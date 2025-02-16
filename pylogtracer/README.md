@@ -1,7 +1,7 @@
-# PyLogTrace - Structured Logging and Tracing for Python
+# PyLogTracer - Structured Logging and Tracing for Python
 
 ## Overview
-PyLogTrace is a Python logging and tracing library that wraps `loguru` for structured logging and integrates with OpenTelemetry to send traces to Grafana Tempo.
+PyLogTracer is a Python logging and tracing library that wraps `loguru` for structured logging and integrates with OpenTelemetry to send traces to Grafana Tempo.
 
 ## Features
 - JSON structured logging via `loguru`
@@ -11,4 +11,4 @@ PyLogTrace is a Python logging and tracing library that wraps `loguru` for struc
 
 ## Installation
 ```bash
-pip install git+ssh://git@github.com/your-org/pylogtrace.git
+pip install git+ssh://git@github.com/your-org/pylogtracer.git
