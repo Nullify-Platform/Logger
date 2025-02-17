@@ -8,9 +8,9 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import ConsoleSpanExporter
 
 from .logger import structured_logger
-from .tracer import trace_span
+from .tracer import track
 
-__all__ = ["structured_logger", "trace_span"]
+__all__ = ["structured_logger", "track"]
 
 
 def get_secret_from_param_store(param_name_env):

@@ -12,7 +12,7 @@ from pylogtracer.logger import structured_logger
 tracer = trace.get_tracer(__name__)
 
 
-def trace_span(span_name=None):
+def track(span_name=None):
     """Decorator to trace function execution with OpenTelemetry, allowing optional span names."""
 
     def decorator(func):
