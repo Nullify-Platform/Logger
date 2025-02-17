@@ -34,17 +34,20 @@ fix-python:
 	ruff format pylogtracer
 	ruff check pylogtracer --fix --select I
 
-pip-compile:
+pip-compile: ensure-pip-tools
 	pip-compile --generate-hashes setup.py
 	pip-compile --generate-hashes --output-file requirements_dev.txt \
 		--extra dev \
 		setup.py
 
-pip-compile-upgrade:
+pip-compile-upgrade: ensure-pip-tools
 	pip-compile --upgrade --generate-hashes setup.py
 	pip-compile --upgrade --generate-hashes --output-file requirements_dev.txt \
 		--extra dev \
 		setup.py
+
+ensure-pip-tools:
+	pip install pip-tools
 
 pip-install:
 	pip install -r requirements.txt
