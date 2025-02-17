@@ -19,6 +19,5 @@ jobs:
         run: make pip-compile
       - name: Fix python
         run: make fix-python
-      - uses: stefanzweifel/git-auto-commit-action@v5
       - name: Run linter and formatter
         run: make lint-python
