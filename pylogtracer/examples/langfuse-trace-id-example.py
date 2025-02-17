@@ -1,10 +1,10 @@
-from pylogtracer import structured_logger
-from pylogtracer import trace_span
+from pylogtracer import structured_logger, trace_span
 
 # Basic logging
 structured_logger.info("Application started", environment="production", version="1.0.0")
 structured_logger.debug("Debug message", user_id="123")
 structured_logger.error("Something went wrong", error_code=500)
+
 
 @trace_span(span_name="process_order2")
 def process_order2(order_id, user_id):
@@ -19,6 +19,7 @@ def process_order1(order_id, user_id):
     # ... your processing logic here ...
     return process_order2(order_id, user_id)
 
+
 # Using the tracer decorator
 @trace_span(span_name="process_order")
 def process_order(order_id, user_id):
@@ -26,5 +27,6 @@ def process_order(order_id, user_id):
     # ... your processing logic here ...
     return process_order1(order_id, user_id)
 
-#Call the traced function
+
+# Call the traced function
 result = process_order("ORDER123", "USER456")

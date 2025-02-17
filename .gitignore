@@ -5,3 +5,7 @@ data
 *.dtmp
 *.bkp
 coverage.*
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg

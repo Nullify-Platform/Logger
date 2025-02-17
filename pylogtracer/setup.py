@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 setup(
     name="pylogtracer",
@@ -8,7 +8,7 @@ setup(
         "opentelemetry-api",
         "opentelemetry-sdk",
         "opentelemetry-exporter-otlp",
-        "loguru"
+        "loguru",
     ],
     description="Internal logging library with structured logs and tracing",
 )

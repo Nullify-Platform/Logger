@@ -1,11 +1,18 @@
-from loguru import logger
-import sys
 import json
-import inspect
+import sys
+
+from loguru import logger
+
+
 class StructuredLogger:
     def __init__(self):
         logger.remove()  # Remove default handlers
-        logger.add(sys.stdout, format="{time} {level} {message} {file} {line} {function}", serialize=True)
+        logger.add(
+            sys.stdout,
+            format="{time} {level} {message} {file} {line} {function}",
+            serialize=True,
+        )
+
     def format_json(self, record):
         log_data = {
             "timestamp": record["time"].isoformat(),
@@ -17,7 +24,7 @@ class StructuredLogger:
             "module": record["module"],
             "process": record["process"].id,
             "thread": record["thread"].id,
-            "context": record["extra"].get("context", {})
+            "context": record["extra"].get("context", {}),
         }
         return json.dumps(log_data) + "\n"
 
@@ -39,5 +46,6 @@ class StructuredLogger:
     def fatal(self, msg, **context):
         self.log("CRITICAL", msg, **context)
         sys.exit(1)  # Exit with error
+
 
 structured_logger = StructuredLogger()
