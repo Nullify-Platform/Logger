@@ -40,8 +40,8 @@ def track(span_name=None):
             with tracer.start_as_current_span(
                 span_label, context=parent_context
             ) as span:
-                trace_id = format(span.get_span_context().trace_id, '032x').strip()
-                span_id = format(span.get_span_context().span_id, '016x').strip()
+                trace_id = format(span.get_span_context().trace_id, "032x").strip()
+                span_id = format(span.get_span_context().span_id, "016x").strip()
 
                 structured_logger.info(
                     f"Started span {span_label}",
