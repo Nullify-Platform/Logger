@@ -1,11 +1,12 @@
 import os
+import sys
 
 import boto3
 from opentelemetry import trace
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import ConsoleSpanExporter
+from opentelemetry.sdk.trace.export import ConsoleSpanExporter, BatchSpanProcessor
 
 from .logger import structured_logger
 from .tracer import track
@@ -45,9 +46,9 @@ def create_exporter():
                 )
             except Exception as e:
                 print(f"Failed to parse headers: {e}")
-
         try:
-            return OTLPSpanExporter(endpoint=endpoint, headers=headers)
+            traces_endpoint = os.getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT") + "/v1/traces"
+            return OTLPSpanExporter(endpoint=traces_endpoint, headers=headers)
         except Exception as e:
             print(f"Failed to create OTLP exporter: {e}")
 
@@ -80,8 +81,10 @@ def initialize_tracer():
     trace.set_tracer_provider(provider)
 
     # # Configure exporter
-    # if exporter := create_exporter():
-    #     provider.add_span_processor(BatchSpanProcessor(exporter))
+    if exporter := create_exporter():
+        provider.add_span_processor(BatchSpanProcessor(exporter))
+    else:
+        structured_logger.warn("No exporter created")
 
     return trace.get_tracer(__name__)
 

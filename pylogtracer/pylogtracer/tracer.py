@@ -40,19 +40,23 @@ def track(span_name=None):
             with tracer.start_as_current_span(
                 span_label, context=parent_context
             ) as span:
-                trace_id = span.get_span_context().trace_id
-                span_id = span.get_span_context().span_id
+                trace_id = format(span.get_span_context().trace_id, '032x').strip()
+                span_id = format(span.get_span_context().span_id, '016x').strip()
 
                 structured_logger.info(
-                    f"Started span {span_label} - Trace ID: {trace_id}, Span ID: {span_id}",
+                    f"Started span {span_label}",
                     session_id=session_id,
+                    trace_id=trace_id,
+                    span_id=span_id,
                 )
 
                 result = func(*args, **kwargs)
 
                 structured_logger.info(
-                    f"Ending span {span_label} - Trace ID: {trace_id}, Span ID: {span_id}",
+                    f"Ending span {span_label}",
                     session_id=session_id,
+                    trace_id=trace_id,
+                    span_id=span_id,
                 )
                 return result
 
