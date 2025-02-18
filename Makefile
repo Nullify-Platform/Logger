@@ -25,3 +25,30 @@ cov:
 lint:
 	docker build --quiet --target golangci-lint -t golangci-lint:latest .
 	docker run --rm -v $(shell pwd):/app -w /app golangci-lint golangci-lint run ./...
+
+lint-python:
+	ruff format pylogtracer --check
+	ruff check pylogtracer
+
+fix-python:
+	ruff format pylogtracer
+	ruff check pylogtracer --fix --select I
+
+pip-compile:
+	pip-compile --generate-hashes setup.py
+	pip-compile --generate-hashes --output-file requirements_dev.txt \
+		--extra dev \
+		setup.py
+
+pip-compile-upgrade:
+	pip-compile --upgrade --generate-hashes setup.py
+	pip-compile --upgrade --generate-hashes --output-file requirements_dev.txt \
+		--extra dev \
+		setup.py
+
+ensure-pip-tools:
+	pip install pip-tools
+
+pip-install:
+	pip install -r requirements.txt
+	pip install -r requirements_dev.txt
