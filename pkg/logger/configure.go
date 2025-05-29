@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"os"
+	"runtime/debug"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -25,7 +26,26 @@ import (
 // Version is the current version of the application
 // override this value with ldflags
 // e.g. -ldflags "-X 'github.com/nullify-platform/logger/pkg/logger.Version=$(VERSION)'"
-var Version = "0.0.0"
+var Version = ""
+
+// BuildInfoRevision https://icinga.com/blog/2022/05/25/embedding-git-commit-information-in-go-binaries/
+var BuildInfoRevision = func() string {
+	var revision, tainted string
+	if info, ok := debug.ReadBuildInfo(); ok {
+		for _, setting := range info.Settings {
+			if setting.Key == "vcs.revision" { //  The information is available only in binaries built with module support.
+				revision = setting.Value
+			}
+			if setting.Key == "vcs.modified" { // if the source code has been modified since the last commit
+				tainted = "-tainted"
+			}
+		}
+	}
+	if revision == "" {
+		return "0.0.0" // Fallback if no revision is found
+	}
+	return revision + tainted
+}()
 
 // ConfigureDevelopmentLogger configures a development logger which is more human readable instead of JSON
 func ConfigureDevelopmentLogger(ctx context.Context, level string, syncs ...io.Writer) (context.Context, error) {
@@ -41,6 +61,11 @@ func ConfigureDevelopmentLogger(ctx context.Context, level string, syncs ...io.W
 		sync = syncs[0]
 	}
 
+	version := Version
+	if version == "" {
+		version = BuildInfoRevision
+	}
+
 	zapLogger := zap.New(
 		zapcore.NewCore(
 			zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig()),
@@ -49,7 +74,7 @@ func ConfigureDevelopmentLogger(ctx context.Context, level string, syncs ...io.W
 		),
 		zap.AddCaller(),
 		zap.AddCallerSkip(1),
-		zap.Fields(zap.String("version", Version)),
+		zap.Fields(zap.String("version", version)),
 	)
 	zap.ReplaceGlobals(zapLogger)
 
@@ -100,6 +125,11 @@ func ConfigureProductionLogger(ctx context.Context, level string, syncs ...io.Wr
 		EncodeCaller:   zapcore.FullCallerEncoder,
 	}
 
+	version := Version
+	if version == "" {
+		version = BuildInfoRevision
+	}
+
 	zapLogger := zap.New(
 		zapcore.NewCore(
 			zapcore.NewJSONEncoder(encoderConfig),
@@ -108,7 +138,7 @@ func ConfigureProductionLogger(ctx context.Context, level string, syncs ...io.Wr
 		),
 		zap.AddCaller(),
 		zap.AddCallerSkip(1),
-		zap.Fields(zap.String("version", Version)),
+		zap.Fields(zap.String("version", version)),
 	)
 	zap.ReplaceGlobals(zapLogger)
 
