@@ -98,8 +98,8 @@ func TestLogFields(t *testing.T) {
 					Build()
 			},
 			expected: map[string]interface{}{
-				"error.type":    "agent_error",
-				"error.message": "test error",
+				"error_type":    "agent_error",
+				"error_message": "test error",
 			},
 		},
 		{
@@ -111,9 +111,9 @@ func TestLogFields(t *testing.T) {
 					Build()
 			},
 			expected: map[string]interface{}{
-				"error.type":      "agent_error",
-				"error.message":   "test error",
-				"error.traceback": "test traceback",
+				"error_type":      "agent_error",
+				"error_message":   "test error",
+				"error_traceback": "test traceback",
 			},
 		},
 		{
@@ -147,9 +147,9 @@ func TestLogFields(t *testing.T) {
 					"installation_id": "12345",
 					"owner":           "test-owner",
 				},
-				"error.type":      "agent_error",
-				"error.message":   "test error",
-				"error.traceback": "test traceback",
+				"error_type":      "agent_error",
+				"error_message":   "test error",
+				"error_traceback": "test traceback",
 			},
 		},
 	}
