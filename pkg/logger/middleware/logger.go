@@ -41,6 +41,21 @@ type httpRequestMetadata struct {
 	Duration        time.Duration `json:"duration"`
 }
 
+// ToLogFields converts the httpRequestMetadata to logger fields for structured logging
+func (m httpRequestMetadata) ToLogFields() []logger.Field {
+	fields := []logger.Field{
+		logger.String("host", m.Host),
+		logger.String("method", m.Method),
+		logger.String("path", m.Path),
+		logger.Any("query", m.Query),
+		logger.Int("statusCode", m.StatusCode),
+		logger.Any("requestHeaders", m.RequestHeaders),
+		logger.Any("responseHeaders", m.ResponseHeaders),
+		logger.Duration("duration", m.Duration),
+	}
+	return fields
+}
+
 // LoggingMiddleware logs the incoming request and the outgoing response and adds relevant tracing information
 func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -82,16 +97,10 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 			RequestHeaders: reqHeaders,
 		}
 
-		if r.URL.EscapedPath() != "/healthcheck" {
-			logger.L(ctx).Info(
-				"new request",
-				logger.Any("requestSummary", metadata),
-			)
-		}
-
 		start := time.Now()
 		rw := &responseWriter{ResponseWriter: w}
 		next.ServeHTTP(rw, r.WithContext(ctx))
+		duration := time.Since(start)
 
 		resHeaders := []string{}
 		for header, values := range rw.Header() {
@@ -102,12 +111,12 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 
 		metadata.StatusCode = rw.StatusCode
 		metadata.ResponseHeaders = resHeaders
-		metadata.Duration = time.Since(start)
+		metadata.Duration = duration
 
 		if r.URL.EscapedPath() != "/healthcheck" {
 			logger.L(ctx).Info(
 				"request summary",
-				logger.Any("requestSummary", metadata),
+				metadata.ToLogFields()...,
 			)
 		}
 	})
