@@ -135,8 +135,6 @@ const (
 	ErrorTypeConfig     ErrorType = "config_error"
 	ErrorTypeNetwork    ErrorType = "network_error"
 	ErrorTypeTimeout    ErrorType = "timeout_error"
-	// Custom error types
-	ErrorTypeExecution ErrorType = "execution_error"
 )
 
 // ErrorFields represents error-related logging fields
