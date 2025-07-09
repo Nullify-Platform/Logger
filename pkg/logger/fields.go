@@ -205,12 +205,12 @@ func WithService(service ServiceFields) Field {
 // WithErrorInfo adds error-related fields to the log entry
 func WithErrorInfo(errFields ErrorFields) []Field {
 	fields := []Field{
-		String("error.type", string(errFields.Type)),
-		String("error.message", errFields.Message),
+		String("error_type", string(errFields.Type)),
+		String("error_message", errFields.Message),
 	}
 
 	if errFields.tracebackSet {
-		fields = append(fields, String("error.traceback", errFields.Traceback))
+		fields = append(fields, String("error_traceback", errFields.Traceback))
 	}
 
 	return fields
