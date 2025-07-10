@@ -114,10 +114,17 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 		metadata.Duration = duration
 
 		if r.URL.EscapedPath() != "/healthcheck" {
-			logger.L(ctx).Info(
-				"request summary",
-				metadata.ToLogFields()...,
-			)
+			log := logger.L(ctx)
+			switch {
+			case metadata.StatusCode >= 500:
+				// Server error
+				log.Error("request summary", metadata.ToLogFields()...)
+			case metadata.StatusCode >= 400:
+				// Client error
+				log.Warn("request summary", metadata.ToLogFields()...)
+			default:
+				log.Info("request summary", metadata.ToLogFields()...)
+			}
 		}
 	})
 }
