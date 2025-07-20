@@ -113,6 +113,10 @@ func (l *logger) getContextMetadataAsFields(fields []zapcore.Field) []zapcore.Fi
 
 // extractFieldsFromStruct extracts fields from a struct and appends them as zap fields
 func extractFieldsFromStruct(ctx context.Context, v reflect.Value, fields []zapcore.Field) []zapcore.Field {
+	if ctx == nil {
+		return fields
+	}
+
 	if v.Kind() == reflect.Ptr {
 		v = v.Elem()
 	}
@@ -143,7 +147,12 @@ func extractFieldsFromStruct(ctx context.Context, v reflect.Value, fields []zapc
 
 		// Retrieve the value from context using the field name as the key
 		key := contextKey(field.Name)
-		if value, ok := ctx.Value(key).(string); ok && value != "" {
+		value := ctx.Value(key)
+		if value == nil {
+			continue
+		}
+
+		if value, ok := value.(string); ok && value != "" {
 			// Append zap field
 			fields = append(fields, zap.String(jsonKey, value))
 		}
