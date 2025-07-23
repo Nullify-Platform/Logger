@@ -4,7 +4,7 @@
     "config:base"
   ],
   "timezone": "Australia/Sydney",
-  "schedule": ["0 8 1 * *"],
+  "schedule": ["* * 1 * *"],
   "docker": {
     "pinDigests": true
   },
