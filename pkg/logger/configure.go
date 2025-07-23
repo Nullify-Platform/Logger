@@ -163,13 +163,13 @@ func ConfigureProductionLogger(ctx context.Context, level string, syncs ...io.Wr
 }
 
 func newTraceProvider(exp sdktrace.SpanExporter) (*sdktrace.TracerProvider, error) {
-	// Ensure default SDK resources and the required service name are set.
-	r, err := resource.Merge(
-		resource.Default(),
-		resource.NewWithAttributes(
-			semconv.SchemaURL,
+	// Create a resource with our own attributes to avoid schema conflicts
+	r, err := resource.New(
+		context.Background(),
+		resource.WithAttributes(
 			semconv.ServiceVersion(Version),
 		),
+		resource.WithSchemaURL(semconv.SchemaURL),
 	)
 	if err != nil {
 		return nil, err
