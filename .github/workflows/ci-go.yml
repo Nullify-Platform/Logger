@@ -22,7 +22,7 @@ jobs:
           version=$(sh scripts/get_golangci_lint_version.sh)
           echo "::set-output name=golangci_lint_version::$version"
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v7
         with:
           version: ${{ steps.extract_version.outputs.golangci_lint_version }}
           args: ./cmd/... ./pkg/... ./tests/...

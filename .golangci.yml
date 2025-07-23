@@ -1,20 +1,32 @@
-run:
-  timeout: 8m
-issues:
-  exclude-dirs:
-    - data
+version: "2"
 linters:
-  disable-all: true
+  default: none
   enable:
-    # default
     - errcheck
-    - gosimple
     - govet
     - ineffassign
     - staticcheck
-    - typecheck
     - unused
-    # style
-    - gofmt
-    - stylecheck
     - whitespace
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - data
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofmt
+  exclusions:
+    generated: lax
+    paths:
+      - data
+      - third_party$
+      - builtin$
+      - examples$
