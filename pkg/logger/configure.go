@@ -83,7 +83,7 @@ func ConfigureDevelopmentLogger(ctx context.Context, level string, syncs ...io.W
 		zap.L().Error("failed to create trace exporter, continuing...", zap.Error(err))
 	}
 
-	tp, err := newTraceProvider(traceExporter)
+	tp, err := newTraceProvider(ctx, traceExporter)
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +147,7 @@ func ConfigureProductionLogger(ctx context.Context, level string, syncs ...io.Wr
 		zap.L().Error("failed to create trace exporter, continuing", zap.Error(err))
 	}
 
-	tp, err := newTraceProvider(traceExporter)
+	tp, err := newTraceProvider(ctx, traceExporter)
 	if err != nil {
 		return nil, err
 	}
@@ -162,10 +162,10 @@ func ConfigureProductionLogger(ctx context.Context, level string, syncs ...io.Wr
 	return ctx, nil
 }
 
-func newTraceProvider(exp sdktrace.SpanExporter) (*sdktrace.TracerProvider, error) {
+func newTraceProvider(ctx context.Context, exp sdktrace.SpanExporter) (*sdktrace.TracerProvider, error) {
 	// Create a resource with our own attributes to avoid schema conflicts
 	r, err := resource.New(
-		context.Background(),
+		ctx,
 		resource.WithAttributes(
 			semconv.ServiceVersion(Version),
 		),
@@ -182,14 +182,13 @@ func newTraceProvider(exp sdktrace.SpanExporter) (*sdktrace.TracerProvider, erro
 	), nil
 }
 
-func getSecretFromParamStore(varName string) *string {
+func getSecretFromParamStore(ctx context.Context, varName string) *string {
 	// check if the param name is defined in the environment
 	paramName := os.Getenv(varName)
 	if paramName == "" {
 		return nil
 	}
 
-	ctx := context.Background()
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
 		zap.L().Error("failed to load aws config", zap.Error(err), zap.String("paramName", paramName))
@@ -211,7 +210,7 @@ func getSecretFromParamStore(varName string) *string {
 
 func newExporter(ctx context.Context) (sdktrace.SpanExporter, error) {
 	if os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") != "" {
-		headers := getSecretFromParamStore("OTEL_EXPORTER_OTLP_HEADERS_NAME")
+		headers := getSecretFromParamStore(ctx, "OTEL_EXPORTER_OTLP_HEADERS_NAME")
 		if headers == nil {
 			traceExporter, err := otlptracehttp.New(ctx)
 			if err != nil {
