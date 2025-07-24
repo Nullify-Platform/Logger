@@ -56,10 +56,21 @@ func ConfigureDevelopmentLogger(ctx context.Context, level string, syncs ...io.W
 		zapLevel = zapcore.InfoLevel
 	}
 
-	var sync io.Writer = os.Stdout
+	var writers []io.Writer
 	if len(syncs) > 0 {
-		sync = syncs[0]
+		writers = syncs
+	} else {
+		writers = []io.Writer{os.Stdout}
 	}
+
+	// Convert io.Writers to zapcore.WriteSyncers
+	writeSyncers := make([]zapcore.WriteSyncer, len(writers))
+	for i, writer := range writers {
+		writeSyncers[i] = zapcore.AddSync(writer)
+	}
+
+	// Combine multiple syncs into a single WriteSyncer
+	multiSync := zapcore.NewMultiWriteSyncer(writeSyncers...)
 
 	version := Version
 	if version == "" {
@@ -69,7 +80,7 @@ func ConfigureDevelopmentLogger(ctx context.Context, level string, syncs ...io.W
 	zapLogger := zap.New(
 		zapcore.NewCore(
 			zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig()),
-			zapcore.AddSync(sync),
+			multiSync,
 			zapLevel,
 		),
 		zap.AddCaller(),
@@ -106,10 +117,21 @@ func ConfigureProductionLogger(ctx context.Context, level string, syncs ...io.Wr
 		zapLevel = zapcore.InfoLevel
 	}
 
-	var sync io.Writer = os.Stdout
+	var writers []io.Writer
 	if len(syncs) > 0 {
-		sync = syncs[0]
+		writers = syncs
+	} else {
+		writers = []io.Writer{os.Stdout}
 	}
+
+	// Convert io.Writers to zapcore.WriteSyncers
+	writeSyncers := make([]zapcore.WriteSyncer, len(writers))
+	for i, writer := range writers {
+		writeSyncers[i] = zapcore.AddSync(writer)
+	}
+
+	// Combine multiple syncs into a single WriteSyncer
+	multiSync := zapcore.NewMultiWriteSyncer(writeSyncers...)
 
 	encoderConfig := zapcore.EncoderConfig{
 		TimeKey:        "timestamp",
@@ -133,7 +155,7 @@ func ConfigureProductionLogger(ctx context.Context, level string, syncs ...io.Wr
 	zapLogger := zap.New(
 		zapcore.NewCore(
 			zapcore.NewJSONEncoder(encoderConfig),
-			zapcore.AddSync(sync),
+			multiSync,
 			zapLevel,
 		),
 		zap.AddCaller(),
