@@ -17,7 +17,11 @@ jobs:
           pip install uv
           uv sync --all-groups
       - name: Check requirements
-        run: make pip-compile
+        run: |
+          . .venv/bin/activate
+          make pip-compile
       - name: Run linter and formatter
-        run: make lint-python
+        run: |
+          . .venv/bin/activate
+          make lint-python
   
