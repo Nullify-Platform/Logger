@@ -35,20 +35,9 @@ fix-python:
 	ruff check pylogtracer --fix --select I
 
 pip-compile:
-	pip-compile --generate-hashes setup.py
-	pip-compile --generate-hashes --output-file requirements_dev.txt \
-		--extra dev \
-		setup.py
+	uv export --no-dev --no-emit-project --no-emit-package hyperdrive --format requirements-txt > requirements.txt
+	uv export          --no-emit-project --no-emit-package hyperdrive --format requirements-txt > requirements_dev.txt
 
 pip-compile-upgrade:
-	pip-compile --upgrade --generate-hashes setup.py
-	pip-compile --upgrade --generate-hashes --output-file requirements_dev.txt \
-		--extra dev \
-		setup.py
-
-ensure-pip-tools:
-	pip install pip-tools
-
-pip-install:
-	pip install -r requirements.txt
-	pip install -r requirements_dev.txt
+	uv lock --upgrade
+	$(MAKE) pip-compile
