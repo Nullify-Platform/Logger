@@ -41,3 +41,7 @@ pip-compile:
 pip-compile-upgrade:
 	uv lock --upgrade
 	$(MAKE) pip-compile
+
+pip-install:
+	pip install -r requirements.txt
+	pip install -r requirements_dev.txt
