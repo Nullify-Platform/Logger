@@ -7,25 +7,7 @@ name = "pylogtracer"
 version = "0.1.0"
 description = "Internal logging library with structured logs and tracing"
 readme = "README.md"
-requires-python = ">=3.9"
-license = {text = "MIT"}
-authors = [
-    {name = "Nullify Team"}
-]
-keywords = ["logging", "tracing", "opentelemetry", "structured-logs"]
-classifiers = [
-    "Development Status :: 4 - Beta",
-    "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python :: 3",
-
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Topic :: System :: Logging",
-    "Topic :: Software Development :: Libraries :: Python Modules",
-]
+requires-python = ">=3.12"
 
 dependencies = [
     "opentelemetry-api>=1.30.0",
@@ -40,12 +22,6 @@ dev = [
     "pytest-asyncio>=0.25.0",
     "ruff>=0.8.0",
 ]
-
-[project.urls]
-Homepage = "https://github.com/nullify/pylogtracer"
-Repository = "https://github.com/nullify/pylogtracer"
-Documentation = "https://github.com/nullify/pylogtracer#readme"
-Issues = "https://github.com/nullify/pylogtracer/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["pylogtracer"]
@@ -86,4 +62,4 @@ addopts = [
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
-] 
+]
