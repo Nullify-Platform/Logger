@@ -1,0 +1,26 @@
+[project]
+name            = "pylogtracer"
+version         = "0.1.0"
+description     = "Internal logging library with structured logs and tracing"
+readme          = "README.md"
+requires-python = ">=3.12"
+dependencies    = [
+    "opentelemetry-api>=1.30.0",
+    "opentelemetry-sdk>=1.30.0",
+    "opentelemetry-exporter-otlp>=1.30.0",
+    "loguru>=0.7.0",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.25.0",
+    "ruff>=0.8.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["agents", "models_python"]
