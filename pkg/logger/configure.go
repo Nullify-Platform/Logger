@@ -181,6 +181,7 @@ func ConfigureProductionLogger(ctx context.Context, level string, syncs ...io.Wr
 	l := &logger{underlyingLogger: zapLogger}
 	ctx = l.InjectIntoContext(ctx)
 	ctx = tracer.NewContext(ctx, tp, "prod-logger-tracer")
+
 	return ctx, nil
 }
 

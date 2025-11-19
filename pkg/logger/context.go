@@ -108,6 +108,17 @@ type contextKey string
 
 // getContextMetadataAsFields extracts fields from the attached context
 func (l *logger) getContextMetadataAsFields(fields []zapcore.Field) []zapcore.Field {
+	// Extract trace_id and span_id from OpenTelemetry span context
+	if l.attachedContext != nil {
+		spanCtx := trace.SpanFromContext(l.attachedContext).SpanContext()
+		if spanCtx.IsValid() {
+			fields = append(fields,
+				zap.String("trace_id", spanCtx.TraceID().String()),
+				zap.String("span_id", spanCtx.SpanID().String()),
+			)
+		}
+	}
+
 	return extractFieldsFromStruct(l.attachedContext, reflect.ValueOf(LogConfig{}), fields)
 }
 
@@ -117,7 +128,7 @@ func extractFieldsFromStruct(ctx context.Context, v reflect.Value, fields []zapc
 		return fields
 	}
 
-	if v.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
 
