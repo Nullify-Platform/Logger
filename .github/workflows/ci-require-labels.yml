@@ -13,7 +13,7 @@ jobs:
     outputs:
       status: ${{ steps.require-labels.outputs.status }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Require Labels
         id: require-labels
         uses: nullify-platform/github-actions/actions/require-labels@main
