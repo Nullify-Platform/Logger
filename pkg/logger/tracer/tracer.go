@@ -3,6 +3,7 @@ package tracer
 
 import (
 	"context"
+	"time"
 
 	otelsdk "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
@@ -62,4 +63,12 @@ func NewContext(parent context.Context, tp *otelsdk.TracerProvider, tracerName s
 func ForceFlush(ctx context.Context) error {
 	tp, _ := ctx.Value(traceProviderCtxKey{}).(*otelsdk.TracerProvider)
 	return tp.ForceFlush(ctx)
+}
+
+// ForceFlushWithReplacedTimeout forces the trace provider to flush all the traces to the exporter, replacing any timeout on ctx with a new one.
+// This is useful so that if ctx is cancelled, we still have a grace period to complete the flush.
+func ForceFlushWithReplacedTimeout(ctx context.Context, timeout time.Duration) error {
+	flushCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), timeout)
+	defer cancel()
+	return ForceFlush(flushCtx)
 }
