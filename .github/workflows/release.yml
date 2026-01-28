@@ -20,7 +20,7 @@ permissions:
   pull-requests: read
 jobs:
   get-version:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     outputs:
       version: ${{ steps.get-version.outputs.version }}
     steps:
@@ -34,7 +34,7 @@ jobs:
           echo "SHORT_SHA: $(git rev-parse --short HEAD)" >> $GITHUB_STEP_SUMMARY
   release:
     if: ${{ needs.get-version.outputs.version != 'undefined' || (github.event_name == 'workflow_dispatch' && needs.get-version.outputs.version != 'undefined') }}
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     needs: [ get-version ]
     steps:
       - uses: actions/checkout@v6
