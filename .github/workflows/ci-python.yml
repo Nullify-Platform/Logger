@@ -4,7 +4,7 @@ on:
   merge_group:
 jobs:
   ci-python:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v6
       - name: Set up Python
