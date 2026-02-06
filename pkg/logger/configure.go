@@ -23,6 +23,7 @@ import (
 	"go.uber.org/zap/zapcore"
 
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 )
@@ -253,11 +254,18 @@ func newSpanExporter(ctx context.Context, headers map[string]string) (sdktrace.S
 }
 
 func newMetricExporter(ctx context.Context, headers map[string]string) (sdkmetric.Exporter, error) {
+	// Grafana Cloud (Mimir) requires cumulative temporality for all metric types.
+	cumulativeTemporality := otlpmetrichttp.WithTemporalitySelector(
+		func(sdkmetric.InstrumentKind) metricdata.Temporality {
+			return metricdata.CumulativeTemporality
+		},
+	)
+
 	if os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") != "" {
 		if headers != nil {
-			return otlpmetrichttp.New(ctx, otlpmetrichttp.WithHeaders(headers))
+			return otlpmetrichttp.New(ctx, otlpmetrichttp.WithHeaders(headers), cumulativeTemporality)
 		}
-		return otlpmetrichttp.New(ctx)
+		return otlpmetrichttp.New(ctx, cumulativeTemporality)
 	}
 
 	if os.Getenv("TRACE_OUTPUT_DEBUG") != "" {
