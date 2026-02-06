@@ -61,7 +61,10 @@ func NewContext(parent context.Context, tp *otelsdk.TracerProvider, tracerName s
 
 // ForceFlush forces the trace provider to flush all the traces to the exporter
 func ForceFlush(ctx context.Context) error {
-	tp, _ := ctx.Value(traceProviderCtxKey{}).(*otelsdk.TracerProvider)
+	tp, ok := ctx.Value(traceProviderCtxKey{}).(*otelsdk.TracerProvider)
+	if !ok || tp == nil {
+		return nil
+	}
 	return tp.ForceFlush(ctx)
 }
 
