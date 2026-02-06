@@ -3,6 +3,8 @@ package logger
 import (
 	"context"
 
+	"github.com/nullify-platform/logger/pkg/logger/meter"
+	"github.com/nullify-platform/logger/pkg/logger/tracer"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
@@ -34,9 +36,11 @@ func L(ctx context.Context) Logger {
 	return nil
 }
 
-// CopyFromContext copies the logger from the old context to the new context
+// CopyFromContext copies the logger, tracer, and meter from the old context to the new context
 func CopyFromContext(fromCtx context.Context, toCtx context.Context) context.Context {
 	l := fromCtx.Value(loggerCtxKey{})
-
-	return context.WithValue(toCtx, loggerCtxKey{}, l)
+	toCtx = context.WithValue(toCtx, loggerCtxKey{}, l)
+	toCtx = tracer.CopyFromContext(fromCtx, toCtx)
+	toCtx = meter.CopyFromContext(fromCtx, toCtx)
+	return toCtx
 }
