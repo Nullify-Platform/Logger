@@ -117,6 +117,94 @@ func TestLogFields(t *testing.T) {
 			},
 		},
 		{
+			name: "tool call with required fields only",
+			builder: func() []Field {
+				return NewLogFields().
+					WithToolCallInfo("api_call", "failed").
+					Build()
+			},
+			expected: map[string]interface{}{
+				"tool_call": map[string]interface{}{
+					"tool_name": "api_call",
+					"status":    "failed",
+				},
+			},
+		},
+		{
+			name: "tool call with error reason",
+			builder: func() []Field {
+				return NewLogFields().
+					WithToolCallInfo("api_call", "failed").
+					WithToolCallErrorReason("connection timeout").
+					Build()
+			},
+			expected: map[string]interface{}{
+				"tool_call": map[string]interface{}{
+					"tool_name":    "api_call",
+					"status":       "failed",
+					"error_reason": "connection timeout",
+				},
+			},
+		},
+		{
+			name: "tool call with duration",
+			builder: func() []Field {
+				return NewLogFields().
+					WithToolCallInfo("api_call", "failed").
+					WithToolCallDuration(1500).
+					Build()
+			},
+			expected: map[string]interface{}{
+				"tool_call": map[string]interface{}{
+					"tool_name":   "api_call",
+					"status":      "failed",
+					"duration_ms": int64(1500),
+				},
+			},
+		},
+		{
+			name: "tool call with all optional fields",
+			builder: func() []Field {
+				return NewLogFields().
+					WithToolCallInfo("api_call", "failed").
+					WithToolCallErrorReason("connection timeout").
+					WithToolCallDuration(1500).
+					Build()
+			},
+			expected: map[string]interface{}{
+				"tool_call": map[string]interface{}{
+					"tool_name":    "api_call",
+					"status":       "failed",
+					"error_reason": "connection timeout",
+					"duration_ms":  int64(1500),
+				},
+			},
+		},
+		{
+			name: "tool call with agent and error",
+			builder: func() []Field {
+				return NewLogFields().
+					WithAgent("executor-agent", "executing").
+					WithToolCallInfo("api_call", "failed").
+					WithToolCallErrorReason("timeout").
+					WithError(ErrorTypeToolCall, "tool execution failed").
+					Build()
+			},
+			expected: map[string]interface{}{
+				"agent": map[string]interface{}{
+					"name":   "executor-agent",
+					"status": "executing",
+				},
+				"tool_call": map[string]interface{}{
+					"tool_name":    "api_call",
+					"status":       "failed",
+					"error_reason": "timeout",
+				},
+				"error_type":    "tool_call_error",
+				"error_message": "tool execution failed",
+			},
+		},
+		{
 			name: "all fields together",
 			builder: func() []Field {
 				return NewLogFields().
@@ -152,6 +240,44 @@ func TestLogFields(t *testing.T) {
 				"error_traceback": "test traceback",
 			},
 		},
+		{
+			name: "all fields together including tool call",
+			builder: func() []Field {
+				return NewLogFields().
+					WithAgent("test-agent", "executing").
+					WithService("tool-executor").
+					WithRepository("test-repo", "github", "12345").
+					WithToolCallInfo("api_call", "failed").
+					WithToolCallErrorReason("timeout").
+					WithToolCallDuration(5000).
+					WithError(ErrorTypeToolCall, "tool execution failed").
+					WithErrorTraceback("goroutine trace...").
+					Build()
+			},
+			expected: map[string]interface{}{
+				"agent": map[string]interface{}{
+					"name":   "test-agent",
+					"status": "executing",
+				},
+				"service": map[string]interface{}{
+					"name": "tool-executor",
+				},
+				"repository": map[string]interface{}{
+					"name":            "test-repo",
+					"platform":        "github",
+					"installation_id": "12345",
+				},
+				"tool_call": map[string]interface{}{
+					"tool_name":    "api_call",
+					"status":       "failed",
+					"error_reason": "timeout",
+					"duration_ms":  int64(5000),
+				},
+				"error_type":      "tool_call_error",
+				"error_message":   "tool execution failed",
+				"error_traceback": "goroutine trace...",
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -175,6 +301,7 @@ func TestErrorType(t *testing.T) {
 		{"unknown error", ErrorTypeUnknown, "unknown_error"},
 		{"validation error", ErrorTypeValidation, "validation_error"},
 		{"agent error", ErrorTypeAgent, "agent_error"},
+		{"tool call error", ErrorTypeToolCall, "tool_call_error"},
 		{"system error", ErrorTypeSystem, "system_error"},
 		{"post scan error", ErrorTypePostScan, "postscan_error"},
 		{"pre scan error", ErrorTypePreScan, "prescan_error"},

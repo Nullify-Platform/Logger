@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/nullify-platform/logger/pkg/logger/meter"
 	"github.com/nullify-platform/logger/pkg/logger/tracer"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -75,6 +76,11 @@ func (l *logger) Sync() {
 	err := tracer.ForceFlush(l.attachedContext)
 	if err != nil {
 		l.Warn("tracer.ForceFlush failed", Err(err))
+	}
+
+	err = meter.ForceFlush(l.attachedContext)
+	if err != nil {
+		l.Warn("meter.ForceFlush failed", Err(err))
 	}
 
 	_ = l.underlyingLogger.Sync()

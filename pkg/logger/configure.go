@@ -10,17 +10,22 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
+	"github.com/nullify-platform/logger/pkg/logger/meter"
 	"github.com/nullify-platform/logger/pkg/logger/tracer"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+	"go.opentelemetry.io/otel/exporters/stdout/stdoutmetric"
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
-	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 )
 
 // Version is the current version of the application
@@ -89,23 +94,13 @@ func ConfigureDevelopmentLogger(ctx context.Context, level string, syncs ...io.W
 	)
 	zap.ReplaceGlobals(zapLogger)
 
-	traceExporter, err := newExporter(ctx)
-	if err != nil {
-		zap.L().Error("failed to create trace exporter, continuing...", zap.Error(err))
-	}
-
-	tp, err := newTraceProvider(ctx, traceExporter)
+	ctx, err = configureOTel(ctx, "dev-logger")
 	if err != nil {
 		return nil, err
 	}
 
-	otel.SetTracerProvider(tp)
-	tc := propagation.TraceContext{}
-	otel.SetTextMapPropagator(tc)
-
 	l := &logger{underlyingLogger: zapLogger}
 	ctx = l.InjectIntoContext(ctx)
-	ctx = tracer.NewContext(ctx, tp, "dev-logger-tracer")
 	return ctx, nil
 }
 
@@ -164,29 +159,19 @@ func ConfigureProductionLogger(ctx context.Context, level string, syncs ...io.Wr
 	)
 	zap.ReplaceGlobals(zapLogger)
 
-	traceExporter, err := newExporter(ctx)
-	if err != nil {
-		zap.L().Error("failed to create trace exporter, continuing", zap.Error(err))
-	}
-
-	tp, err := newTraceProvider(ctx, traceExporter)
+	ctx, err = configureOTel(ctx, "prod-logger")
 	if err != nil {
 		return nil, err
 	}
 
-	otel.SetTracerProvider(tp)
-	tc := propagation.TraceContext{}
-	otel.SetTextMapPropagator(tc)
-
 	l := &logger{underlyingLogger: zapLogger}
 	ctx = l.InjectIntoContext(ctx)
-	ctx = tracer.NewContext(ctx, tp, "prod-logger-tracer")
 	return ctx, nil
 }
 
-func newTraceProvider(ctx context.Context, exp sdktrace.SpanExporter) (*sdktrace.TracerProvider, error) {
-	// Create a resource with our own attributes to avoid schema conflicts
-	r, err := resource.New(
+// configureOTel configures the OTel tracer and meter providers, returning a new context with providers attached.
+func configureOTel(ctx context.Context, scopeName string) (context.Context, error) {
+	res, err := resource.New(
 		ctx,
 		resource.WithAttributes(
 			semconv.ServiceVersion(Version),
@@ -197,15 +182,100 @@ func newTraceProvider(ctx context.Context, exp sdktrace.SpanExporter) (*sdktrace
 		return nil, err
 	}
 
-	return sdktrace.NewTracerProvider(
-		sdktrace.WithBatcher(exp),
-		sdktrace.WithResource(r),
+	headers := resolveOTLPHeaders(ctx)
+
+	traceExporter, err := newSpanExporter(ctx, headers)
+	if err != nil {
+		zap.L().Error("failed to create trace exporter, continuing", zap.Error(err))
+	}
+
+	tp := sdktrace.NewTracerProvider(
+		sdktrace.WithBatcher(traceExporter),
+		sdktrace.WithResource(res),
 		sdktrace.WithSampler(sdktrace.AlwaysSample()),
-	), nil
+	)
+	otel.SetTracerProvider(tp)
+	otel.SetTextMapPropagator(propagation.TraceContext{})
+	ctx = tracer.NewContext(ctx, tp, scopeName+"-tracer")
+
+	metricExporter, err := newMetricExporter(ctx, headers)
+	if err != nil {
+		zap.L().Error("failed to create metric exporter, continuing", zap.Error(err))
+	}
+
+	mpOpts := []sdkmetric.Option{sdkmetric.WithResource(res)}
+	if metricExporter != nil {
+		mpOpts = append(mpOpts, sdkmetric.WithReader(sdkmetric.NewPeriodicReader(metricExporter)))
+	}
+	mp := sdkmetric.NewMeterProvider(mpOpts...)
+	otel.SetMeterProvider(mp)
+	ctx = meter.NewContext(ctx, mp, scopeName+"-meter")
+
+	return ctx, nil
+}
+
+// resolveOTLPHeaders fetches OTLP exporter headers once from SSM parameter store.
+// Returns nil if no endpoint is configured or no headers are needed.
+func resolveOTLPHeaders(ctx context.Context) map[string]string {
+	if os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") == "" {
+		return nil
+	}
+
+	raw := getSecretFromParamStore(ctx, "OTEL_EXPORTER_OTLP_HEADERS_NAME")
+	if raw == nil {
+		return nil
+	}
+
+	headerMap := make(map[string]string)
+	for header := range strings.SplitSeq(*raw, ",") {
+		parts := strings.SplitN(header, "=", 2)
+		if len(parts) != 2 {
+			zap.L().Error("invalid header format", zap.String("header", header))
+			continue
+		}
+		headerMap[parts[0]] = parts[1]
+	}
+	return headerMap
+}
+
+func newSpanExporter(ctx context.Context, headers map[string]string) (sdktrace.SpanExporter, error) {
+	if os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") != "" {
+		if headers != nil {
+			return otlptracehttp.New(ctx, otlptracehttp.WithHeaders(headers))
+		}
+		return otlptracehttp.New(ctx)
+	}
+
+	if os.Getenv("TRACE_OUTPUT_DEBUG") != "" {
+		return stdouttrace.New(stdouttrace.WithPrettyPrint(), stdouttrace.WithWriter(os.Stdout))
+	}
+
+	return nil, nil
+}
+
+func newMetricExporter(ctx context.Context, headers map[string]string) (sdkmetric.Exporter, error) {
+	// Grafana Cloud (Mimir) requires cumulative temporality for all metric types.
+	cumulativeTemporality := otlpmetrichttp.WithTemporalitySelector(
+		func(sdkmetric.InstrumentKind) metricdata.Temporality {
+			return metricdata.CumulativeTemporality
+		},
+	)
+
+	if os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") != "" {
+		if headers != nil {
+			return otlpmetrichttp.New(ctx, otlpmetrichttp.WithHeaders(headers), cumulativeTemporality)
+		}
+		return otlpmetrichttp.New(ctx, cumulativeTemporality)
+	}
+
+	if os.Getenv("TRACE_OUTPUT_DEBUG") != "" {
+		return stdoutmetric.New(stdoutmetric.WithPrettyPrint())
+	}
+
+	return nil, nil
 }
 
 func getSecretFromParamStore(ctx context.Context, varName string) *string {
-	// check if the param name is defined in the environment
 	paramName := os.Getenv(varName)
 	if paramName == "" {
 		return nil
@@ -228,47 +298,4 @@ func getSecretFromParamStore(ctx context.Context, varName string) *string {
 	}
 
 	return param.Parameter.Value
-}
-
-func newExporter(ctx context.Context) (sdktrace.SpanExporter, error) {
-	if os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") != "" {
-		headers := getSecretFromParamStore(ctx, "OTEL_EXPORTER_OTLP_HEADERS_NAME")
-		if headers == nil {
-			traceExporter, err := otlptracehttp.New(ctx)
-			if err != nil {
-				return nil, err
-			}
-
-			return traceExporter, nil
-		}
-
-		var headerMap = make(map[string]string)
-		for _, header := range strings.Split(*headers, ",") {
-			parts := strings.SplitN(header, "=", 2)
-			if len(parts) != 2 {
-				zap.L().Error("invalid header format", zap.String("header", header))
-				continue
-			}
-
-			headerMap[parts[0]] = parts[1]
-		}
-
-		traceExporter, err := otlptracehttp.New(ctx, otlptracehttp.WithHeaders(headerMap))
-		if err != nil {
-			return nil, err
-		}
-
-		return traceExporter, nil
-	}
-
-	if os.Getenv("TRACE_OUTPUT_DEBUG") != "" {
-		traceExporter, err := stdouttrace.New(
-			stdouttrace.WithPrettyPrint(), stdouttrace.WithWriter(os.Stdout))
-		if err != nil {
-			return nil, err
-		}
-		return traceExporter, nil
-	}
-
-	return nil, nil
 }

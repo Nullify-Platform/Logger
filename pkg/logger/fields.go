@@ -128,6 +128,7 @@ const (
 	ErrorTypeUnknown    ErrorType = "unknown_error"
 	ErrorTypeValidation ErrorType = "validation_error"
 	ErrorTypeAgent      ErrorType = "agent_error"
+	ErrorTypeToolCall   ErrorType = "tool_call_error"
 	ErrorTypeSystem     ErrorType = "system_error"
 	ErrorTypePostScan   ErrorType = "postscan_error"
 	ErrorTypePreScan    ErrorType = "prescan_error"
@@ -143,6 +144,15 @@ type ErrorFields struct {
 	Message      string
 	Traceback    string // optional
 	tracebackSet bool
+}
+
+type ToolCallFields struct {
+	ToolName    string
+	Status      string
+	ErrorReason string // optional
+	Duration    int64  // optional, duration in milliseconds
+	reasonSet   bool   // internal tracking
+	durationSet bool
 }
 
 // WithAgent adds agent-related fields to the log entry
@@ -214,12 +224,44 @@ func WithErrorInfo(errFields ErrorFields) []Field {
 	return fields
 }
 
+func WithToolCall(toolCall ToolCallFields) Field {
+	fields := map[string]interface{}{
+		"tool_name": toolCall.ToolName,
+		"status":    toolCall.Status,
+	}
+
+	if toolCall.reasonSet {
+		fields["error_reason"] = toolCall.ErrorReason
+	}
+	if toolCall.durationSet {
+		fields["duration_ms"] = toolCall.Duration
+	}
+
+	return Any("tool_call", fields)
+}
+
+// Builder methods for ToolCallFields
+
+func (t *ToolCallFields) WithErrorReason(reason string) *ToolCallFields {
+	t.ErrorReason = reason
+	t.reasonSet = true
+	return t
+}
+
+// WithDuration adds optional duration in milliseconds
+func (t *ToolCallFields) WithDuration(durationMs int64) *ToolCallFields {
+	t.Duration = durationMs
+	t.durationSet = true
+	return t
+}
+
 // LogFields represents all logging-related fields
 type LogFields struct {
 	Agent      *AgentFields
 	Repository *RepositoryFields
 	Service    *ServiceFields
 	Error      *ErrorFields
+	ToolCall   *ToolCallFields
 }
 
 // NewLogFields creates a new LogFields instance
@@ -314,6 +356,30 @@ func (l *LogFields) WithErrorTraceback(traceback string) *LogFields {
 	return l
 }
 
+func (l *LogFields) WithToolCallInfo(toolName, status string) *LogFields {
+	l.ToolCall = &ToolCallFields{
+		ToolName: toolName,
+		Status:   status,
+	}
+	return l
+}
+
+func (l *LogFields) WithToolCallErrorReason(reason string) *LogFields {
+	if l.ToolCall == nil {
+		l.ToolCall = &ToolCallFields{}
+	}
+	l.ToolCall.WithErrorReason(reason)
+	return l
+}
+
+func (l *LogFields) WithToolCallDuration(durationMs int64) *LogFields {
+	if l.ToolCall == nil {
+		l.ToolCall = &ToolCallFields{}
+	}
+	l.ToolCall.WithDuration(durationMs)
+	return l
+}
+
 // Build creates all the fields based on what was set
 func (l *LogFields) Build() []Field {
 	var fields []Field
@@ -332,6 +398,10 @@ func (l *LogFields) Build() []Field {
 
 	if l.Error != nil {
 		fields = append(fields, WithErrorInfo(*l.Error)...)
+	}
+
+	if l.ToolCall != nil {
+		fields = append(fields, WithToolCall(*l.ToolCall))
 	}
 
 	return fields

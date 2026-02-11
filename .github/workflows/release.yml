@@ -20,11 +20,11 @@ permissions:
   pull-requests: read
 jobs:
   get-version:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     outputs:
       version: ${{ steps.get-version.outputs.version }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Get Release Version
         id: get-version
         uses: nullify-platform/github-actions/actions/release-version@main
@@ -34,10 +34,10 @@ jobs:
           echo "SHORT_SHA: $(git rev-parse --short HEAD)" >> $GITHUB_STEP_SUMMARY
   release:
     if: ${{ needs.get-version.outputs.version != 'undefined' || (github.event_name == 'workflow_dispatch' && needs.get-version.outputs.version != 'undefined') }}
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     needs: [ get-version ]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Generate Release Tag
         run: echo "RELEASE_TAG=v${{ needs.get-version.outputs.version }}" >> $GITHUB_ENV
       - name: Generate Release

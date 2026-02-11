@@ -9,11 +9,11 @@ run-name: CI Require Labels ${{ github.sha }} by @${{ github.actor }}
 jobs:
   require-labels:
     if: ${{ github.event_name == 'pull_request' }}
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     outputs:
       status: ${{ steps.require-labels.outputs.status }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Require Labels
         id: require-labels
         uses: nullify-platform/github-actions/actions/require-labels@main
