@@ -89,18 +89,36 @@ func (l *logger) Sync() {
 // Debug logs a message with the debug level
 func (l *logger) Debug(msg string, fields ...Field) {
 	updateFields := l.getContextMetadataAsFields(fields)
+	if chunks := chunkOversizedFields(updateFields); chunks != nil {
+		for _, chunkFields := range chunks {
+			l.underlyingLogger.Debug(msg, chunkFields...)
+		}
+		return
+	}
 	l.underlyingLogger.Debug(msg, updateFields...)
 }
 
 // Info logs a message with the info level
 func (l *logger) Info(msg string, fields ...Field) {
 	updateFields := l.getContextMetadataAsFields(fields)
+	if chunks := chunkOversizedFields(updateFields); chunks != nil {
+		for _, chunkFields := range chunks {
+			l.underlyingLogger.Info(msg, chunkFields...)
+		}
+		return
+	}
 	l.underlyingLogger.Info(msg, updateFields...)
 }
 
 // Warn logs a message with the warn level
 func (l *logger) Warn(msg string, fields ...Field) {
 	updateFields := l.getContextMetadataAsFields(fields)
+	if chunks := chunkOversizedFields(updateFields); chunks != nil {
+		for _, chunkFields := range chunks {
+			l.underlyingLogger.Warn(msg, chunkFields...)
+		}
+		return
+	}
 	l.underlyingLogger.Warn(msg, updateFields...)
 }
 
@@ -109,6 +127,12 @@ func (l *logger) Error(msg string, fields ...Field) {
 	trace.SpanFromContext(l.attachedContext).RecordError(errors.New(msg))
 	trace.SpanFromContext(l.attachedContext).SetStatus(codes.Error, msg)
 	updateFields := l.getContextMetadataAsFields(fields)
+	if chunks := chunkOversizedFields(updateFields); chunks != nil {
+		for _, chunkFields := range chunks {
+			l.underlyingLogger.Error(msg, chunkFields...)
+		}
+		return
+	}
 	l.underlyingLogger.Error(msg, updateFields...)
 }
 
