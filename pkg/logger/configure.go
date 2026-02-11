@@ -54,6 +54,29 @@ var BuildInfoRevision = func() string {
 
 // ConfigureDevelopmentLogger configures a development logger which is more human readable instead of JSON
 func ConfigureDevelopmentLogger(ctx context.Context, level string, syncs ...io.Writer) (context.Context, error) {
+	encoder := zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig())
+	return configureLogger(ctx, level, "dev-logger", encoder, syncs...)
+}
+
+func ConfigureProductionLogger(ctx context.Context, level string, syncs ...io.Writer) (context.Context, error) {
+	encoderConfig := zapcore.EncoderConfig{
+		TimeKey:        "timestamp",
+		LevelKey:       "level",
+		NameKey:        "logger",
+		CallerKey:      "caller",
+		MessageKey:     "msg",
+		StacktraceKey:  "stacktrace",
+		LineEnding:     zapcore.DefaultLineEnding,
+		EncodeLevel:    zapcore.LowercaseLevelEncoder,
+		EncodeTime:     zapcore.ISO8601TimeEncoder,
+		EncodeDuration: zapcore.StringDurationEncoder,
+		EncodeCaller:   zapcore.FullCallerEncoder,
+	}
+	encoder := zapcore.NewJSONEncoder(encoderConfig)
+	return configureLogger(ctx, level, "prod-logger", encoder, syncs...)
+}
+
+func configureLogger(ctx context.Context, level, scopeName string, encoder zapcore.Encoder, syncs ...io.Writer) (context.Context, error) {
 	// configure level
 	zapLevel, err := zapcore.ParseLevel(level)
 	if err != nil {
@@ -83,83 +106,14 @@ func ConfigureDevelopmentLogger(ctx context.Context, level string, syncs ...io.W
 	}
 
 	zapLogger := zap.New(
-		zapcore.NewCore(
-			zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig()),
-			multiSync,
-			zapLevel,
-		),
+		zapcore.NewCore(encoder, multiSync, zapLevel),
 		zap.AddCaller(),
 		zap.AddCallerSkip(1),
 		zap.Fields(zap.String("version", version)),
 	)
 	zap.ReplaceGlobals(zapLogger)
 
-	ctx, err = configureOTel(ctx, "dev-logger")
-	if err != nil {
-		return nil, err
-	}
-
-	l := &logger{underlyingLogger: zapLogger}
-	ctx = l.InjectIntoContext(ctx)
-	return ctx, nil
-}
-
-// ConfigureProductionLogger configures a JSON production logger
-func ConfigureProductionLogger(ctx context.Context, level string, syncs ...io.Writer) (context.Context, error) {
-	zapLevel, err := zapcore.ParseLevel(level)
-	if err != nil {
-		zap.L().Error("failed to parse log level, using info", zap.Error(err))
-		zapLevel = zapcore.InfoLevel
-	}
-
-	var writers []io.Writer
-	if len(syncs) > 0 {
-		writers = syncs
-	} else {
-		writers = []io.Writer{os.Stdout}
-	}
-
-	// Convert io.Writers to zapcore.WriteSyncers
-	writeSyncers := make([]zapcore.WriteSyncer, len(writers))
-	for i, writer := range writers {
-		writeSyncers[i] = zapcore.AddSync(writer)
-	}
-
-	// Combine multiple syncs into a single WriteSyncer
-	multiSync := zapcore.NewMultiWriteSyncer(writeSyncers...)
-
-	encoderConfig := zapcore.EncoderConfig{
-		TimeKey:        "timestamp",
-		LevelKey:       "level",
-		NameKey:        "logger",
-		CallerKey:      "caller",
-		MessageKey:     "msg",
-		StacktraceKey:  "stacktrace",
-		LineEnding:     zapcore.DefaultLineEnding,
-		EncodeLevel:    zapcore.LowercaseLevelEncoder,
-		EncodeTime:     zapcore.ISO8601TimeEncoder,
-		EncodeDuration: zapcore.StringDurationEncoder,
-		EncodeCaller:   zapcore.FullCallerEncoder,
-	}
-
-	version := Version
-	if version == "" {
-		version = BuildInfoRevision
-	}
-
-	zapLogger := zap.New(
-		zapcore.NewCore(
-			zapcore.NewJSONEncoder(encoderConfig),
-			multiSync,
-			zapLevel,
-		),
-		zap.AddCaller(),
-		zap.AddCallerSkip(1),
-		zap.Fields(zap.String("version", version)),
-	)
-	zap.ReplaceGlobals(zapLogger)
-
-	ctx, err = configureOTel(ctx, "prod-logger")
+	ctx, err = configureOTel(ctx, scopeName)
 	if err != nil {
 		return nil, err
 	}
