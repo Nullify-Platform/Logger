@@ -18,7 +18,7 @@ func Trace(trace []byte) Field {
 }
 
 // Any adds a field to the logger
-func Any(key string, val interface{}) Field {
+func Any(key string, val any) Field {
 	return zap.Any(key, val)
 }
 
@@ -157,7 +157,7 @@ type ToolCallFields struct {
 
 // WithAgent adds agent-related fields to the log entry
 func WithAgent(agent AgentFields) Field {
-	fields := map[string]interface{}{
+	fields := map[string]any{
 		"name":   agent.Name,
 		"status": agent.Status,
 	}
@@ -178,7 +178,7 @@ func (a *AgentFields) WithTraceID(traceID string) *AgentFields {
 
 // WithRepository adds repository-related fields to the log entry
 func WithRepository(repo RepositoryFields) Field {
-	fields := map[string]interface{}{
+	fields := map[string]any{
 		"name":            repo.Name,
 		"platform":        repo.Platform,
 		"installation_id": repo.InstallationID,
@@ -193,7 +193,7 @@ func WithRepository(repo RepositoryFields) Field {
 
 // WithService adds service-related fields to the log entry
 func WithService(service ServiceFields) Field {
-	fields := map[string]interface{}{
+	fields := map[string]any{
 		"name": service.Name,
 	}
 
@@ -225,7 +225,7 @@ func WithErrorInfo(errFields ErrorFields) []Field {
 }
 
 func WithToolCall(toolCall ToolCallFields) Field {
-	fields := map[string]interface{}{
+	fields := map[string]any{
 		"tool_name": toolCall.ToolName,
 		"status":    toolCall.Status,
 	}

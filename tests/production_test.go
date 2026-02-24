@@ -28,7 +28,7 @@ func TestProductionLogger(t *testing.T) {
 
 	fmt.Println("stdout: " + output.String())
 
-	var jsonOutput map[string]interface{}
+	var jsonOutput map[string]any
 	err = json.Unmarshal(output.Bytes(), &jsonOutput)
 	require.Nil(t, err, "stdout was not valid json")
 

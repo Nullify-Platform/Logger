@@ -40,7 +40,7 @@ func CreateClientContextForLambdaInvoke(ctx context.Context, custom map[string]s
 	InjectTracingIntoCustomMessage(ctx, custom)
 
 	var clientContextBase64 *string
-	if marshalled, err := json.Marshal(map[string]interface{}{"custom": custom}); err == nil {
+	if marshalled, err := json.Marshal(map[string]any{"custom": custom}); err == nil {
 		clientContextJSON := marshalled
 		clientContextBase64 = aws.String(base64.StdEncoding.EncodeToString(clientContextJSON))
 	}

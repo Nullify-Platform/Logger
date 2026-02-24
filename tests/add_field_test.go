@@ -28,7 +28,7 @@ func TestAddField(t *testing.T) {
 	fmt.Println("stdout: " + output.String())
 
 	// check that the output doesn't include the added field
-	var jsonOutput map[string]interface{}
+	var jsonOutput map[string]any
 	err = json.Unmarshal(output.Bytes(), &jsonOutput)
 	require.Nil(t, err)
 	_, ok := jsonOutput["my"]
