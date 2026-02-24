@@ -2,7 +2,7 @@
 
 VERSION ?= $(shell git rev-list -1 HEAD)
 GOENV = CGO_ENABLED=0 GOOS=linux GOARCH=amd64
-GOFLAGS = -ldflags "-X 'moseisleycantina/internal/logger.Version=$(VERSION)'"
+GOFLAGS = -ldflags "-X 'github.com/nullify-platform/logger/pkg/logger.Version=$(VERSION)'"
 GOLANGCI_LINT_VERSION := v2.10.1
 
 build:
