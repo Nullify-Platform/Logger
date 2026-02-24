@@ -117,7 +117,7 @@ func extractFieldsFromStruct(ctx context.Context, v reflect.Value, fields []zapc
 		return fields
 	}
 
-	if v.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
 
@@ -133,7 +133,7 @@ func extractFieldsFromStruct(ctx context.Context, v reflect.Value, fields []zapc
 		fieldValue := v.Field(i)
 
 		// If the field is a struct, recurse into it
-		if fieldValue.Kind() == reflect.Struct || (fieldValue.Kind() == reflect.Ptr && fieldValue.Elem().Kind() == reflect.Struct) {
+		if fieldValue.Kind() == reflect.Struct || (fieldValue.Kind() == reflect.Pointer && fieldValue.Elem().Kind() == reflect.Struct) {
 			fields = extractFieldsFromStruct(ctx, fieldValue, fields)
 			continue
 		}

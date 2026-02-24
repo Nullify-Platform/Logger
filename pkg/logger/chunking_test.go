@@ -135,7 +135,7 @@ func TestChunkOversizedFields_ExactLimit(t *testing.T) {
 }
 
 // fieldsToMap converts a slice of zap fields to a map for easier test assertions.
-func fieldsToMap(fields []zapcore.Field) map[string]interface{} {
+func fieldsToMap(fields []zapcore.Field) map[string]any {
 	enc := zapcore.NewMapObjectEncoder()
 	for _, f := range fields {
 		f.AddTo(enc)

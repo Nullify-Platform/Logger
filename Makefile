@@ -3,6 +3,7 @@
 VERSION ?= $(shell git rev-list -1 HEAD)
 GOENV = CGO_ENABLED=0 GOOS=linux GOARCH=amd64
 GOFLAGS = -ldflags "-X 'moseisleycantina/internal/logger.Version=$(VERSION)'"
+GOLANGCI_LINT_VERSION := v2.10.1
 
 build:
 	$(GOENV) go build $(GOFLAGS) -o bin/logger ./cmd/...
@@ -22,9 +23,13 @@ cov:
 	-go tool cover -html=coverage.txt -o coverage.html
 	-go tool cover -func=coverage.txt
 
-lint:
-	docker build --quiet --target golangci-lint -t golangci-lint:latest .
-	docker run --rm -v $(shell pwd):/app -w /app golangci-lint golangci-lint run ./...
+lint: lint-go
+
+lint-go:
+	@if ! command -v golangci-lint >/dev/null 2>&1 || ! golangci-lint version 2>/dev/null | grep -q "$(patsubst v%,%,$(GOLANGCI_LINT_VERSION))"; then \
+		go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION) ; \
+	fi
+	golangci-lint run ./...
 
 lint-python:
 	ruff format pylogtracer --check

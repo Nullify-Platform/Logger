@@ -11,7 +11,7 @@ func TestLogFields(t *testing.T) {
 	tests := []struct {
 		name     string
 		builder  func() []Field
-		expected map[string]interface{}
+		expected map[string]any
 	}{
 		{
 			name: "agent fields",
@@ -20,8 +20,8 @@ func TestLogFields(t *testing.T) {
 					WithAgent("test-agent", "running").
 					Build()
 			},
-			expected: map[string]interface{}{
-				"agent": map[string]interface{}{
+			expected: map[string]any{
+				"agent": map[string]any{
 					"name":   "test-agent",
 					"status": "running",
 				},
@@ -34,8 +34,8 @@ func TestLogFields(t *testing.T) {
 					WithService("test-service").
 					Build()
 			},
-			expected: map[string]interface{}{
-				"service": map[string]interface{}{
+			expected: map[string]any{
+				"service": map[string]any{
 					"name": "test-service",
 				},
 			},
@@ -49,8 +49,8 @@ func TestLogFields(t *testing.T) {
 					WithServiceCategory("test-category").
 					Build()
 			},
-			expected: map[string]interface{}{
-				"service": map[string]interface{}{
+			expected: map[string]any{
+				"service": map[string]any{
 					"name":         "test-service",
 					"tool_name":    "test-tool",
 					"tool_version": "1.0.0",
@@ -65,8 +65,8 @@ func TestLogFields(t *testing.T) {
 					WithRepository("test-repo", "github", "12345").
 					Build()
 			},
-			expected: map[string]interface{}{
-				"repository": map[string]interface{}{
+			expected: map[string]any{
+				"repository": map[string]any{
 					"name":            "test-repo",
 					"platform":        "github",
 					"installation_id": "12345",
@@ -81,8 +81,8 @@ func TestLogFields(t *testing.T) {
 					WithRepositoryOwner("test-owner").
 					Build()
 			},
-			expected: map[string]interface{}{
-				"repository": map[string]interface{}{
+			expected: map[string]any{
+				"repository": map[string]any{
 					"name":            "test-repo",
 					"platform":        "github",
 					"installation_id": "12345",
@@ -97,7 +97,7 @@ func TestLogFields(t *testing.T) {
 					WithError(ErrorTypeAgent, "test error").
 					Build()
 			},
-			expected: map[string]interface{}{
+			expected: map[string]any{
 				"error_type":    "agent_error",
 				"error_message": "test error",
 			},
@@ -110,7 +110,7 @@ func TestLogFields(t *testing.T) {
 					WithErrorTraceback("test traceback").
 					Build()
 			},
-			expected: map[string]interface{}{
+			expected: map[string]any{
 				"error_type":      "agent_error",
 				"error_message":   "test error",
 				"error_traceback": "test traceback",
@@ -123,8 +123,8 @@ func TestLogFields(t *testing.T) {
 					WithToolCallInfo("api_call", "failed").
 					Build()
 			},
-			expected: map[string]interface{}{
-				"tool_call": map[string]interface{}{
+			expected: map[string]any{
+				"tool_call": map[string]any{
 					"tool_name": "api_call",
 					"status":    "failed",
 				},
@@ -138,8 +138,8 @@ func TestLogFields(t *testing.T) {
 					WithToolCallErrorReason("connection timeout").
 					Build()
 			},
-			expected: map[string]interface{}{
-				"tool_call": map[string]interface{}{
+			expected: map[string]any{
+				"tool_call": map[string]any{
 					"tool_name":    "api_call",
 					"status":       "failed",
 					"error_reason": "connection timeout",
@@ -154,8 +154,8 @@ func TestLogFields(t *testing.T) {
 					WithToolCallDuration(1500).
 					Build()
 			},
-			expected: map[string]interface{}{
-				"tool_call": map[string]interface{}{
+			expected: map[string]any{
+				"tool_call": map[string]any{
 					"tool_name":   "api_call",
 					"status":      "failed",
 					"duration_ms": int64(1500),
@@ -171,8 +171,8 @@ func TestLogFields(t *testing.T) {
 					WithToolCallDuration(1500).
 					Build()
 			},
-			expected: map[string]interface{}{
-				"tool_call": map[string]interface{}{
+			expected: map[string]any{
+				"tool_call": map[string]any{
 					"tool_name":    "api_call",
 					"status":       "failed",
 					"error_reason": "connection timeout",
@@ -190,12 +190,12 @@ func TestLogFields(t *testing.T) {
 					WithError(ErrorTypeToolCall, "tool execution failed").
 					Build()
 			},
-			expected: map[string]interface{}{
-				"agent": map[string]interface{}{
+			expected: map[string]any{
+				"agent": map[string]any{
 					"name":   "executor-agent",
 					"status": "executing",
 				},
-				"tool_call": map[string]interface{}{
+				"tool_call": map[string]any{
 					"tool_name":    "api_call",
 					"status":       "failed",
 					"error_reason": "timeout",
@@ -218,18 +218,18 @@ func TestLogFields(t *testing.T) {
 					WithErrorTraceback("test traceback").
 					Build()
 			},
-			expected: map[string]interface{}{
-				"agent": map[string]interface{}{
+			expected: map[string]any{
+				"agent": map[string]any{
 					"name":   "test-agent",
 					"status": "failed",
 				},
-				"service": map[string]interface{}{
+				"service": map[string]any{
 					"name":         "test-service",
 					"tool_name":    "test-tool",
 					"tool_version": "1.0.0",
 					"category":     "test-category",
 				},
-				"repository": map[string]interface{}{
+				"repository": map[string]any{
 					"name":            "test-repo",
 					"platform":        "github",
 					"installation_id": "12345",
@@ -254,20 +254,20 @@ func TestLogFields(t *testing.T) {
 					WithErrorTraceback("goroutine trace...").
 					Build()
 			},
-			expected: map[string]interface{}{
-				"agent": map[string]interface{}{
+			expected: map[string]any{
+				"agent": map[string]any{
 					"name":   "test-agent",
 					"status": "executing",
 				},
-				"service": map[string]interface{}{
+				"service": map[string]any{
 					"name": "tool-executor",
 				},
-				"repository": map[string]interface{}{
+				"repository": map[string]any{
 					"name":            "test-repo",
 					"platform":        "github",
 					"installation_id": "12345",
 				},
-				"tool_call": map[string]interface{}{
+				"tool_call": map[string]any{
 					"tool_name":    "api_call",
 					"status":       "failed",
 					"error_reason": "timeout",
