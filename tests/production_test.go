@@ -39,7 +39,7 @@ func TestProductionLogger(t *testing.T) {
 	assert.NoError(t, err, "did not get working directory successfully")
 	assert.Equal(t, pwd+"/production_test.go:26", jsonOutput["caller"], "stdout didn't include the file path and line number")
 
-	assert.Equal(t, "0.0.0", jsonOutput["version"], "stdout didn't include version")
+	assert.Equal(t, "0.0.0", jsonOutput["service.version"], "stdout didn't include service.version")
 }
 
 func TestProductionLoggerMeterAvailable(t *testing.T) {
