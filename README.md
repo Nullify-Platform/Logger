@@ -27,7 +27,6 @@ func main() {
   ctx, span := tracer.FromContext(ctx).Start(ctx, "main")
   defer span.End()
 
-
   // You can add more contextual event information to spans through the span.AddEvent method. This is analogous to adding a log message, and has an associated timestamp that is recorded.
   span.AddEvent("a piece of work is starting within the span")
 
@@ -42,17 +41,57 @@ func main() {
 }
 
 func anotherFunction(ctx context.Context) {
-  // Retrieve the tracer from the context
+  // Start a child span - the parent span is automatically linked via context.
   ctx, span := tracer.FromContext(ctx).Start(ctx, "some-other-work")
   defer span.End()
 
-  // This will automatically set the parent function span to be the parent span of this new span that has started, within this trace.
-
-  // To record errors, you can use the logger.L(ctx).Error() call. This will automatically capture any errors that you pass into it and pass them to GlitchTip. It will also set the span to errored, so it is highlighted in Grafana.
-
-  error := errors.New("this is an error")
-  logger.L(err).Error("this is an error", error)
+  // To record errors, use logger.L(ctx).Error(). This automatically sets the span to errored, so it is highlighted in Grafana.
+  err := errors.New("this is an error")
+  logger.L(ctx).Error("this is an error", logger.Err(err))
 }
+```
+
+### Spans
+
+Spans are created via the `tracer` sub-package. Both the tracer and meter are automatically injected into context by `ConfigureProductionLogger` / `ConfigureDevelopmentLogger`.
+
+```go
+// Start a child span (inherits parent from context)
+ctx, span := tracer.StartNewSpan(ctx, "span-name")
+defer span.End()
+
+// Start a root span (no parent, e.g. at the entry point of an API handler)
+ctx, span := tracer.StartNewRootSpan(ctx, "request-handler")
+defer span.End()
+
+// With options
+ctx, span := tracer.StartNewSpan(ctx, "span-name",
+  trace.WithAttributes(attribute.String("key", "value")),
+  trace.WithSpanKind(trace.SpanKindServer),
+)
+defer span.End()
+
+// Flush traces before shutdown (e.g. in Lambda handlers)
+tracer.ForceFlush(ctx)
+```
+
+### Metrics
+
+Metrics are created via the `meter` sub-package. The meter is retrieved from context.
+
+```go
+m := meter.FromContext(ctx)
+
+// Create instruments
+counter, _ := m.Int64Counter("requests.total")
+histogram, _ := m.Float64Histogram("request.duration_ms")
+
+// Record measurements
+counter.Add(ctx, 1, metric.WithAttributes(attribute.String("method", "GET")))
+histogram.Record(ctx, 42.5)
+
+// Flush metrics before shutdown
+meter.ForceFlush(ctx)
 ```
 
 ## OpenTelemetry Exporting
@@ -62,8 +101,8 @@ To actually have your traces exported, you need to set a few environment variabl
 - `OTEL_EXPORTER_OTLP_PROTOCOL`: typically set to `http/protobuf`; this is the protocol that the traces are sent over.
 - `OTEL_EXPORTER_OTLP_ENDPOINT`: the endpoint that the traces are sent to.
 - `OTEL_EXPORTER_OTLP_HEADERS_NAME`: the name of the parameter in aws parameter store that contains the headers for the OTLP exporter.
-- `OTEL_RESOURCE_ATTRIBUTES`: the attributes that are associated with the service. Typically, you would set the environment here like `deployment.environment=production`.
-- `OTEL_SERVICE_NAME`: the name of the service that is being traced.
+- `OTEL_RESOURCE_ATTRIBUTES`: comma-separated `key=value` attributes associated with the service (e.g. `deployment.environment=production`). These are propagated to traces, metrics, and as default log fields.
+- `OTEL_SERVICE_NAME`: the name of the service. Propagated to traces, metrics, and as a default `service.name` log field.
 
 ## Install
 
@@ -89,13 +128,13 @@ make
 ## Test
 
 ```
-make test # without coverage
+make unit # without coverage
 make cov  # with coverage
 ```
 
 ## Lint
 
-Run the golangci-lint docker image with the following tools:
+Run golangci-lint with the following tools:
 
 - gofmt
 - stylecheck

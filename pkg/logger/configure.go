@@ -105,11 +105,14 @@ func configureLogger(ctx context.Context, level, scopeName string, encoder zapco
 		version = BuildInfoRevision
 	}
 
+	defaultFields := []zapcore.Field{zap.String("service.version", version)}
+	defaultFields = append(defaultFields, otelEnvFields()...)
+
 	zapLogger := zap.New(
 		zapcore.NewCore(encoder, multiSync, zapLevel),
 		zap.AddCaller(),
 		zap.AddCallerSkip(1),
-		zap.Fields(zap.String("version", version)),
+		zap.Fields(defaultFields...),
 	)
 	zap.ReplaceGlobals(zapLogger)
 
@@ -227,6 +230,29 @@ func newMetricExporter(ctx context.Context, headers map[string]string) (sdkmetri
 	}
 
 	return nil, nil
+}
+
+// otelEnvFields reads OTEL_SERVICE_NAME and OTEL_RESOURCE_ATTRIBUTES env vars
+// and returns them as zap fields, mirroring the resource attributes that the
+// OTEL SDK picks up for traces and metrics.
+func otelEnvFields() []zapcore.Field {
+	var fields []zapcore.Field
+
+	if serviceName := os.Getenv("OTEL_SERVICE_NAME"); serviceName != "" {
+		fields = append(fields, zap.String("service.name", serviceName))
+	}
+
+	if attrs := os.Getenv("OTEL_RESOURCE_ATTRIBUTES"); attrs != "" {
+		for entry := range strings.SplitSeq(attrs, ",") {
+			parts := strings.SplitN(entry, "=", 2)
+			if len(parts) != 2 {
+				continue
+			}
+			fields = append(fields, zap.String(parts[0], parts[1]))
+		}
+	}
+
+	return fields
 }
 
 func getSecretFromParamStore(ctx context.Context, varName string) *string {
