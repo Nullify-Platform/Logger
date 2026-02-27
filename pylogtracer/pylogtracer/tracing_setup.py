@@ -4,15 +4,15 @@ OpenTelemetry tracer initialization.
 This module requires the ``[tracing]`` extra to be installed::
 
     pip install pylogtracer[tracing]
-
-It is lazily loaded by ``pylogtracer.__init__`` so importing
-``pylogtracer`` without the extra does not crash.
 """
 
+import logging
 import os
 
+logger = logging.getLogger(__name__)
 
-def get_secret_from_param_store(param_name_env: str) -> str | None:
+
+def _get_secret_from_param_store(param_name_env: str) -> str | None:
     """Fetch a secret from AWS Systems Manager Parameter Store.
 
     Args:
@@ -31,19 +31,19 @@ def get_secret_from_param_store(param_name_env: str) -> str | None:
         ssm = boto3.client("ssm")
         response = ssm.get_parameter(Name=param_name, WithDecryption=True)
         return response["Parameter"]["Value"]
-    except Exception as e:  # noqa: BLE001
-        print(f"Failed to fetch parameter {param_name}: {e}")  # noqa: T201
+    except Exception:
+        logger.exception("Failed to fetch parameter %s", param_name)
         return None
 
 
-def create_exporter():
+def _create_exporter():
     """Create an OTLP or console span exporter based on environment variables."""
     from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
     from opentelemetry.sdk.trace.export import ConsoleSpanExporter
 
     if endpoint := os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"):
         headers: dict[str, str] = {}
-        if headers_param := get_secret_from_param_store(
+        if headers_param := _get_secret_from_param_store(
             "OTEL_EXPORTER_OTLP_HEADERS_NAME"
         ):
             try:
@@ -52,18 +52,18 @@ def create_exporter():
                     for pair in headers_param.split(",")
                     if "=" in pair
                 )
-            except Exception as e:  # noqa: BLE001
-                print(f"Failed to parse headers: {e}")  # noqa: T201
+            except Exception:
+                logger.exception("Failed to parse OTLP headers")
         try:
             return OTLPSpanExporter(endpoint=endpoint + "/v1/traces", headers=headers)
-        except Exception as e:  # noqa: BLE001
-            print(f"Failed to create OTLP exporter: {e}")  # noqa: T201
+        except Exception:
+            logger.exception("Failed to create OTLP exporter for %s", endpoint)
 
     if os.getenv("TRACE_OUTPUT_DEBUG"):
         try:
             return ConsoleSpanExporter()
-        except Exception as e:  # noqa: BLE001
-            print(f"Failed to create console exporter: {e}")  # noqa: T201
+        except Exception:
+            logger.exception("Failed to create console exporter")
 
     return None
 
@@ -89,11 +89,7 @@ def initialize_tracer():
     provider = TracerProvider(resource=resource)
     trace.set_tracer_provider(provider)
 
-    if exporter := create_exporter():
+    if exporter := _create_exporter():
         provider.add_span_processor(BatchSpanProcessor(exporter))
 
     return trace.get_tracer(__name__)
-
-
-# Lazily initialized -- only runs when this module is actually imported.
-tracer = initialize_tracer()

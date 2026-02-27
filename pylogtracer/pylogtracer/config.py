@@ -32,7 +32,7 @@ def configure_logging(
         suppress_langfuse: Suppress verbose Langfuse logging.
     """
     level_str = os.getenv("PYTHON_LOG_LEVEL", log_level).upper()
-    level = getattr(logging, level_str, logging.INFO)
+    level = logging.getLevelNamesMapping().get(level_str, logging.INFO)
 
     dev_mode = os.getenv("DEVELOPMENT_MODE", "").lower() in ("true", "1")
 

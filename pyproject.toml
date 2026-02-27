@@ -8,6 +8,7 @@ dependencies    = []  # Core modules (formatter, config) are stdlib-only
 
 [project.optional-dependencies]
 tracing = [
+    "boto3>=1.35.0",
     "opentelemetry-api>=1.30.0",
     "opentelemetry-sdk>=1.30.0",
     "opentelemetry-exporter-otlp>=1.30.0",

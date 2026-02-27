@@ -6,9 +6,9 @@ Core (zero external dependencies):
     - ``configure_logging``: one-call root logger setup (JSON in prod, text in dev)
 
 Optional extras (install via ``pip install pylogtracer[tracing]``, etc.):
-    - ``structured_logger``: loguru-based structured logger (requires ``[loguru]``)
-    - ``track``: OpenTelemetry span tracing decorator (requires ``[tracing,loguru]``)
-    - ``initialize_tracer``: OpenTelemetry tracer setup (requires ``[tracing]``)
+    - ``get_structured_logger()``: loguru-based structured logger (requires ``[loguru]``)
+    - ``get_tracer()``: OpenTelemetry tracer (requires ``[tracing]``)
+    - ``initialize_tracer()``: OpenTelemetry tracer setup (requires ``[tracing]``)
 """
 
 # Always available -- stdlib only
@@ -18,26 +18,30 @@ from .formatter import JSONLogFormatter
 __all__ = [
     "JSONLogFormatter",
     "configure_logging",
+    "get_structured_logger",
+    "get_tracer",
 ]
 
 
-def __getattr__(name: str):  # noqa: N807
-    """Lazy-load optional modules to avoid import errors when extras are not installed."""
-    if name == "structured_logger":
-        from .logger import structured_logger
+def get_structured_logger():
+    """Return the loguru-based structured logger.
 
-        return structured_logger
-    if name == "track":
-        from .tracer import track
+    Requires the ``[loguru]`` extra::
 
-        return track
-    if name == "initialize_tracer":
-        from .tracing_setup import initialize_tracer
+        pip install pylogtracer[loguru]
+    """
+    from .logger import structured_logger
 
-        return initialize_tracer
-    if name == "tracer":
-        from .tracing_setup import tracer
+    return structured_logger
 
-        return tracer
-    msg = f"module 'pylogtracer' has no attribute {name!r}"
-    raise AttributeError(msg)
+
+def get_tracer():
+    """Return an initialised OpenTelemetry tracer.
+
+    Requires the ``[tracing]`` extra::
+
+        pip install pylogtracer[tracing]
+    """
+    from .tracing_setup import initialize_tracer
+
+    return initialize_tracer()
