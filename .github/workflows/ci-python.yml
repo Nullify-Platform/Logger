@@ -24,3 +24,7 @@ jobs:
         run: |
           . .venv/bin/activate
           make lint-python
+      - name: Run tests
+        run: |
+          . .venv/bin/activate
+          make test-python

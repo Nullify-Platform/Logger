@@ -1,93 +1,43 @@
-import os
+"""
+PyLogTracer -- Structured logging and optional tracing for Python services.
 
-import boto3
-from opentelemetry import trace
-from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
-from opentelemetry.sdk.resources import Resource
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
+Core (zero external dependencies):
+    - ``JSONLogFormatter``: stdlib ``logging.Formatter`` producing Go zap-compatible JSON
+    - ``configure_logging``: one-call root logger setup (JSON in prod, text in dev)
 
-from .logger import structured_logger
-from .tracer import track
+Optional extras (install via ``pip install pylogtracer[tracing]``, etc.):
+    - ``structured_logger``: loguru-based structured logger (requires ``[loguru]``)
+    - ``track``: OpenTelemetry span tracing decorator (requires ``[tracing,loguru]``)
+    - ``initialize_tracer``: OpenTelemetry tracer setup (requires ``[tracing]``)
+"""
 
-__all__ = ["structured_logger", "track"]
+# Always available -- stdlib only
+from .config import configure_logging
+from .formatter import JSONLogFormatter
 
-
-def get_secret_from_param_store(param_name_env):
-    """Fetch secret from AWS Parameter Store"""
-    param_name = os.getenv(param_name_env)
-    if not param_name:
-        return None
-
-    try:
-        ssm = boto3.client("ssm")
-        response = ssm.get_parameter(Name=param_name, WithDecryption=True)
-        return response["Parameter"]["Value"]
-    except Exception as e:
-        print(f"Failed to fetch parameter {param_name}: {e}")
-        return None
+__all__ = [
+    "JSONLogFormatter",
+    "configure_logging",
+]
 
 
-def create_exporter():
-    """Create appropriate span exporter based on environment configuration"""
-    if endpoint := os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"):
-        # Check for headers in Parameter Store
-        headers = {}
-        if headers_param := get_secret_from_param_store(
-            "OTEL_EXPORTER_OTLP_HEADERS_NAME"
-        ):
-            try:
-                # Parse headers string "key1=value1,key2=value2" format
-                headers = dict(
-                    pair.split("=", 1)
-                    for pair in headers_param.split(",")
-                    if "=" in pair
-                )
-            except Exception as e:
-                print(f"Failed to parse headers: {e}")
-        try:
-            traces_endpoint = endpoint + "/v1/traces"
+def __getattr__(name: str):  # noqa: N807
+    """Lazy-load optional modules to avoid import errors when extras are not installed."""
+    if name == "structured_logger":
+        from .logger import structured_logger
 
-            return OTLPSpanExporter(endpoint=traces_endpoint, headers=headers)
-        except Exception as e:
-            print(f"Failed to create OTLP exporter: {e}")
+        return structured_logger
+    if name == "track":
+        from .tracer import track
 
-    # Fall back to console exporter if TRACE_OUTPUT_DEBUG is set
-    if os.getenv("TRACE_OUTPUT_DEBUG"):
-        try:
-            return ConsoleSpanExporter()
-        except Exception as e:
-            print(f"Failed to create console exporter: {e}")
+        return track
+    if name == "initialize_tracer":
+        from .tracing_setup import initialize_tracer
 
-    return None
+        return initialize_tracer
+    if name == "tracer":
+        from .tracing_setup import tracer
 
-
-def initialize_tracer():
-    """Initialize the OpenTelemetry tracer"""
-    # Create resource with service information
-    resource = Resource.create(
-        {
-            "service.name": os.getenv("OTEL_SERVICE_NAME", "pylogtrace-service"),
-            "service.namespace": os.getenv("OTEL_SERVICE_NAMESPACE", "default"),
-            "deployment.environment": os.getenv(
-                "DEPLOYMENT_ENVIRONMENT", "development"
-            ),
-            "service.version": os.getenv("SERVICE_VERSION", "0.0.0"),
-        }
-    )
-
-    # Set up tracer provider with resource
-    provider = TracerProvider(resource=resource)
-    trace.set_tracer_provider(provider)
-
-    # # Configure exporter
-    if exporter := create_exporter():
-        provider.add_span_processor(BatchSpanProcessor(exporter))
-    else:
-        structured_logger.warn("No exporter created")
-
-    return trace.get_tracer(__name__)
-
-
-# Initialize the tracer
-tracer = initialize_tracer()
+        return tracer
+    msg = f"module 'pylogtracer' has no attribute {name!r}"
+    raise AttributeError(msg)
