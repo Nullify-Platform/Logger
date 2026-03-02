@@ -31,6 +31,9 @@ lint-go:
 	fi
 	golangci-lint run ./...
 
+test-python:
+	pytest pylogtracer/tests/ -v
+
 lint-python:
 	ruff format pylogtracer --check
 	ruff check pylogtracer
