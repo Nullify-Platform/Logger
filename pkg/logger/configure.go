@@ -134,6 +134,7 @@ func configureOTel(ctx context.Context, scopeName string) (context.Context, erro
 			semconv.ServiceVersion(Version),
 		),
 		resource.WithSchemaURL(semconv.SchemaURL),
+		resource.WithFromEnv(),
 	)
 	if err != nil {
 		return nil, err
